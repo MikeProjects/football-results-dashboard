@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -75,6 +76,31 @@ def _is_content_filter(exc: Exception) -> bool:
     if isinstance(body, dict):
         code = code or body.get("code") or (body.get("error") or {}).get("code")
     return code == "content_filter" or "content_filter" in str(exc)
+
+
+def _safe_error_details(exc: Exception) -> dict[str, str | int]:
+    """Extract bounded provider diagnostics without logging the raw exception or response body."""
+    details: dict[str, str | int] = {"error": type(exc).__name__}
+    status = getattr(exc, "status_code", None)
+    if isinstance(status, int):
+        details["http_status"] = status
+
+    code = getattr(exc, "code", None)
+    body = getattr(exc, "body", None)
+    provider_error = body.get("error") if isinstance(body, dict) else None
+    if isinstance(provider_error, dict):
+        code = code or provider_error.get("code")
+        message = provider_error.get("message")
+        if isinstance(message, str):
+            # Provider messages are useful (for example, rate-limit guidance), but may contain
+            # identifiers or URLs. Strip those and cap the field before putting it in logs.
+            message = re.sub(r"https?://\S+", "[url]", message)
+            message = re.sub(r"(?i)\b(bearer|token|api[-_ ]?key)\s*[:=]?\s*\S+", r"\1 [redacted]", message)
+            message = re.sub(r"[\r\n\t]+|[\x00-\x1f\x7f]", " ", message)
+            details["provider_message"] = message[:300]
+    if isinstance(code, str) and re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", code):
+        details["provider_code"] = code
+    return details
 
 
 class InsightsAgent:
@@ -160,7 +186,9 @@ class InsightsAgent:
                               results=run.results, tool_calls=run.calls, model=run.usage,
                               grounding=Grounding(status="not_applicable"), caveats=_caveats(run.results),
                               cannot_tell=_cannot(run.results))
-            log.warning("live model call failed", extra={"fields": {"error": type(exc).__name__}})
+            error_details = _safe_error_details(exc)
+            visible_details = ", ".join(f"{key}={value}" for key, value in error_details.items())
+            log.warning("live model call failed: %s", visible_details, extra={"fields": error_details})
             trace.get_current_span().set_attribute("error.type", type(exc).__name__)
             cached = narratives.load(self.settings.narrative_cache_dir, question)
             if cached is not None:

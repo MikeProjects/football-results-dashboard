@@ -3,7 +3,9 @@
 Astra and Sol prices: Azure Retail Prices API, product "Azure OpenAI GPT6",
 Global Standard, short context, USD per 1M tokens, retrieved 2026-09-29.
 GPT-5 mini prices: Microsoft Foundry pricing table, Global Standard, USD per
-1M tokens, checked 2026-10-25. Your agreement may differ.
+1M tokens, checked 2026-10-25:
+https://devblogs.microsoft.com/foundry/whats-new-in-azure-ai-foundry-august-2025/.
+Your agreement may differ.
 """
 
 from __future__ import annotations

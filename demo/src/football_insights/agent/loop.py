@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -30,6 +29,14 @@ log = logging.getLogger("football_insights.agent")
 tracer = trace.get_tracer(__name__)
 PROVIDER = "azure.ai.openai"
 AGENT_NAME = "football-insights"
+# Only fixed, recognized provider codes are safe to export. A syntactically valid
+# but arbitrary code can still contain a credential or user-supplied text.
+SAFE_PROVIDER_CODES = frozenset({
+    "content_filter", "content_policy_violation", "DeploymentNotFound", "insufficient_quota",
+    "invalid_api_key", "invalid_request_error", "model_not_found", "OperationNotSupported",
+    "PermissionDenied", "rate_limit_exceeded", "RateLimitReached", "ResourceNotFound",
+    "ResponsibleAIPolicyViolation", "server_error", "ServiceUnavailable",
+})
 
 ToolRunner = Callable[[str, dict[str, Any]], tuple[ToolResult, float]]
 
@@ -70,35 +77,27 @@ def _item_dict(item: Any) -> dict[str, Any]:
     return dict(item.model_dump(exclude_none=True))
 
 
-def _is_content_filter(exc: Exception) -> bool:
+def _provider_code(exc: Exception) -> str | None:
     code = getattr(exc, "code", None)
     body = getattr(exc, "body", None)
     if isinstance(body, dict):
-        code = code or body.get("code") or (body.get("error") or {}).get("code")
-    return code == "content_filter" or "content_filter" in str(exc)
+        error = body.get("error")
+        code = code or body.get("code") or (error.get("code") if isinstance(error, dict) else None)
+    return code if isinstance(code, str) and code in SAFE_PROVIDER_CODES else None
+
+
+def _is_content_filter(exc: Exception) -> bool:
+    return _provider_code(exc) == "content_filter" or "content_filter" in str(exc)
 
 
 def _safe_error_details(exc: Exception) -> dict[str, str | int]:
-    """Extract bounded provider diagnostics without logging the raw exception or response body."""
+    """Export fixed metadata only: provider messages can echo credentials and user input."""
     details: dict[str, str | int] = {"error": type(exc).__name__}
     status = getattr(exc, "status_code", None)
-    if isinstance(status, int):
+    if isinstance(status, int) and not isinstance(status, bool) and 100 <= status <= 599:
         details["http_status"] = status
-
-    code = getattr(exc, "code", None)
-    body = getattr(exc, "body", None)
-    provider_error = body.get("error") if isinstance(body, dict) else None
-    if isinstance(provider_error, dict):
-        code = code or provider_error.get("code")
-        message = provider_error.get("message")
-        if isinstance(message, str):
-            # Provider messages are useful (for example, rate-limit guidance), but may contain
-            # identifiers or URLs. Strip those and cap the field before putting it in logs.
-            message = re.sub(r"https?://\S+", "[url]", message)
-            message = re.sub(r"(?i)\b(bearer|token|api[-_ ]?key)\s*[:=]?\s*\S+", r"\1 [redacted]", message)
-            message = re.sub(r"[\r\n\t]+|[\x00-\x1f\x7f]", " ", message)
-            details["provider_message"] = message[:300]
-    if isinstance(code, str) and re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", code):
+    code = _provider_code(exc)
+    if code is not None:
         details["provider_code"] = code
     return details
 

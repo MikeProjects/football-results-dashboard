@@ -54,6 +54,27 @@ registry/storage names from the subscription ID; override `ACR_NAME` and
 `STORAGE_ACCOUNT_NAME` in the local `.env` if the generated names are already taken.
 Any configured `ACA_*`, monitoring, and identity names take precedence over defaults.
 
+`FOUNDRY_RESOURCE_GROUP` selects the existing Foundry group. If it is blank, the
+script requires `AZURE_RESOURCE_GROUP` as a fallback. Setting
+`FOUNDRY_RESOURCE_GROUP` explicitly is sufficient for this ACA-only selection;
+the original two-platform commands still require `AZURE_RESOURCE_GROUP`.
+`ACA_RESOURCE_GROUP` selects the separate application group and must differ from
+the selected Foundry group.
+
+If `check` reports `Set AZURE_RESOURCE_GROUP in .env`, neither Foundry group
+selection was populated in the script's environment. Set `FOUNDRY_RESOURCE_GROUP`
+in the repository-root `.env`, then rerun `check`. Copying or editing
+`.env.example` alone does not configure the script. Existing shell environment
+values take precedence over `.env`; clear or correct stale shell values before
+retrying.
+
+The template intentionally leaves resource names and endpoints blank. Obtain
+the account and project names from your existing Foundry configuration; the
+endpoint must match `https://<resource>.services.ai.azure.com/api/projects/<project>`.
+Matching this URL structure does not confirm that the resources exist or that
+your identity can access them. The next step checks the account and model
+deployment in Azure; it does not verify the project's existence or invoke it.
+
 The script changes `AZURE_RESOURCE_GROUP` **in the running PowerShell child process only**,
 pointing it to the isolated ACA group. Your original `.env` and existing Foundry group remain untouched.
 

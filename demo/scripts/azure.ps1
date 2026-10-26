@@ -83,6 +83,16 @@ function Get-DeploymentOutputs([string]$Name) {
     return $json | ConvertFrom-Json
 }
 function Import-DeploymentOutputs {
+    # The isolated ACA workflow has its own foundation, with no Foundry or AKS
+    # provisioning. Preserve the original two-platform workflow unchanged.
+    if ($env:ACA_ONLY_MODE -eq 'true') {
+        $base = Get-DeploymentOutputs 'football-aca-base'
+        $env:FOUNDRY_PROJECT_ENDPOINT = $base.foundryProjectEndpoint.value
+        $env:APPLICATIONINSIGHTS_CONNECTION_STRING = $base.applicationInsightsConnectionString.value
+        $env:ACR_LOGIN_SERVER = $base.registryLoginServer.value
+        $env:STORAGE_ACCOUNT_URL = $base.storageBlobEndpoint.value.TrimEnd('/')
+        return
+    }
     # Derived values live only in this process; they are never written to .env or printed.
     $foundation = Get-DeploymentOutputs 'football-foundation'
     $platform = Get-DeploymentOutputs 'football-platform'

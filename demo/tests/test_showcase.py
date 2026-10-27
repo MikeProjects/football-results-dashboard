@@ -164,6 +164,25 @@ def test_natural_football_language_passes_validation_in_both_modes() -> None:
     assert "event log" not in " ".join(evidence_at(45)["limitations"]).lower()
 
 
+@pytest.mark.parametrize(
+    ("step", "original_clock"),
+    [(1, "0′"), (55, "52′"), (94, "90+3′"), (110, "106′")],
+)
+def test_fallback_does_not_relabel_last_incident(
+    step: int, original_clock: str
+) -> None:
+    commentary = summary(step)
+    assert f"At {step}′, no new recorded incident." in commentary
+    assert f"Last recorded event at {original_clock}:" in commentary
+    assert f"Score: {HOME} 0–0 {AWAY}." in commentary
+
+
+def test_fallback_current_event_retains_actual_clock() -> None:
+    assert summary(106).startswith("106′: Argentina's goalkeeper saves")
+    assert summary(93).startswith("90+3′: An Argentine player is booked")
+    assert summary(130).startswith("Full time:")
+
+
 def test_disabled_ai_uses_honestly_labeled_summary() -> None:
     settings = SimpleNamespace(narrative_mode="off")
     result = CommentaryService(settings).explain(130, "analyst")

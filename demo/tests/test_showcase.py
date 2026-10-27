@@ -68,7 +68,7 @@ def test_commentary_calls_are_independent_and_cannot_read_future() -> None:
     class FakeResponses:
         def create(self, **kwargs):  # type: ignore[no-untyped-def]
             calls.append(kwargs)
-            return SimpleNamespace(output_text="The keeper makes another important save.")
+            return SimpleNamespace(status="completed", output_text="The keeper makes another important save.")
 
     settings = SimpleNamespace(narrative_mode="live", ai_model_deployment="gpt-5-mini-1",
                                ai_max_output_tokens=1200, ai_reasoning_effort="low", ai_timeout_seconds=10.0)
@@ -92,7 +92,7 @@ def test_commentary_calls_are_independent_and_cannot_read_future() -> None:
 def test_unsupported_future_result_is_hidden() -> None:
     class FutureResponses:
         def create(self, **kwargs):  # type: ignore[no-untyped-def]
-            return SimpleNamespace(output_text="Argentina wins on penalties.")
+            return SimpleNamespace(status="completed", output_text="Argentina wins on penalties.")
 
     settings = SimpleNamespace(narrative_mode="live", ai_model_deployment="test",
                                ai_max_output_tokens=1200, ai_reasoning_effort="low", ai_timeout_seconds=10.0)
@@ -124,7 +124,7 @@ def test_commentary_rejections_are_diagnosable_without_leaking_text(
     class FakeResponses:
         def create(self, **kwargs):  # type: ignore[no-untyped-def]
             details = SimpleNamespace(reason=incomplete_reason) if incomplete_reason else None
-            return SimpleNamespace(output_text=output_text, incomplete_details=details)
+            return SimpleNamespace(status="completed", output_text=output_text, incomplete_details=details)
 
     settings = SimpleNamespace(narrative_mode="live", ai_model_deployment="test",
                                ai_max_output_tokens=1200, ai_reasoning_effort="low",
@@ -140,6 +140,43 @@ def test_commentary_rejections_are_diagnosable_without_leaking_text(
         assert output_text[:50] not in caplog.text
 
 
+@pytest.mark.parametrize(
+    ("response_status", "incomplete_reason", "expected_code"),
+    [
+        ("incomplete", "max_output_tokens", "output_token_limit"),
+        ("incomplete", "content_filter", "incomplete_model_response"),
+        ("completed", "max_output_tokens", "output_token_limit"),
+        ("incomplete", None, "non_completed_model_response"),
+        ("failed", None, "non_completed_model_response"),
+        ("in_progress", None, "non_completed_model_response"),
+    ],
+)
+def test_partial_text_is_never_accepted_as_live_commentary(
+    response_status: str, incomplete_reason: str | None, expected_code: str, caplog
+) -> None:  # type: ignore[no-untyped-def]
+    """Even non-empty text is untrustworthy until the model finishes."""
+    class PartialResponses:
+        def create(self, **kwargs):  # type: ignore[no-untyped-def]
+            details = SimpleNamespace(reason=incomplete_reason) if incomplete_reason else None
+            return SimpleNamespace(
+                status=response_status,
+                output_text="Spain keep pushing and Argentina respond",
+                incomplete_details=details,
+            )
+
+    settings = SimpleNamespace(
+        narrative_mode="live", ai_model_deployment="test",
+        ai_max_output_tokens=1200, ai_reasoning_effort="low",
+        ai_timeout_seconds=10.0,
+    )
+    service = CommentaryService(settings, client_factory=lambda: SimpleNamespace(responses=PartialResponses()))
+    response = service.explain(106, "fan")
+    assert response["status"] == "unavailable"
+    assert response["commentary"] == summary(106)
+    assert f"showcase commentary rejected ({expected_code})" in caplog.text
+    assert "Spain keep pushing and Argentina respond" not in caplog.text
+
+
 def test_natural_football_language_passes_validation_in_both_modes() -> None:
     """The guard must not mistake ordinary football terms for internal metadata."""
     text = ("Evidence: Spain have five recorded shots and Argentina have two saves. "
@@ -149,7 +186,7 @@ def test_natural_football_language_passes_validation_in_both_modes() -> None:
     class NaturalResponses:
         def create(self, **kwargs):  # type: ignore[no-untyped-def]
             calls.append(kwargs)
-            return SimpleNamespace(output_text=text)
+            return SimpleNamespace(status="completed", output_text=text)
 
     settings = SimpleNamespace(narrative_mode="live", ai_model_deployment="test",
                                ai_max_output_tokens=1200, ai_reasoning_effort="low",

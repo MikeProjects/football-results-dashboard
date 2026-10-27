@@ -17,7 +17,7 @@ configured resource group. Use `aca-only.ps1` for this test.
 | --- | --- |
 | Existing Foundry resource group | One `Foundry User` role assignment for ACA's insights identity **only**. No changes to Foundry models, quota, or account. |
 | Dedicated ACA resource group | Container Registry Basic, Storage (raw + curated), Log Analytics, workspace-based Application Insights, three ACA user-assigned identities with least-privilege roles, ACA environment, two apps, and ingest job. |
-| Local Windows | Docker builds, short-lived environment configuration, and an ignored `.local/deploy/digests.json` file. |
+| Local Windows | Docker builds, short-lived environment configuration, and a dedicated, ignored `.local/deploy/aca-only-digests.json` artifact. Legacy `digests.json` (v1 rollback baseline) and `digests-v2.json` are not used by this workflow. |
 
 The existing `demo/infra/aca.bicep` remains the application template.
 `demo/infra/aca-isolated-base.bicep` creates shared infrastructure;
@@ -145,7 +145,20 @@ the account itself. Azure RBAC propagation can take several minutes.
 
 Only CSVs under the two locally downloaded dataset folders are uploaded to the private
 `raw` container. The build/push operation produces three container images (`web`,
-`insights`, `ingest`) and records their immutable digests under `.local/deploy/`.
+`insights`, `ingest`) and records their immutable digests in
+`.local/deploy/aca-only-digests.json`. The ACA-only `build-push`, `plan-aca`,
+`deploy-aca`, and `smoke` commands use this dedicated file, rather than
+overwriting or reading the legacy `.local/deploy/digests.json` rollback baseline
+or `digests-v2.json` rollout file. If the ACA-only file is missing, these
+commands fail instead of falling back to legacy image digests.
+
+**Existing local checkouts:** Earlier ACA-only builds may have written their
+digests to `digests.json`. This fix does not automatically recover any older
+rollback baseline overwritten by that behavior. Do **not** blindly copy
+`digests.json` to the new ACA-only filename: first independently verify the
+registry, tag and digest values belong to the dedicated ACA deployment, or
+rebuild/push intentionally when appropriate. Do not deploy or roll back using
+uncertain digest metadata.
 
 ## 5. Restrict public access, review, deploy ACA
 

@@ -18,7 +18,7 @@ def duplicates(names: list[str]) -> list[str]:
 
 def test_powershell_functions_are_defined_once() -> None:
     for path in sorted(SCRIPTS.glob("*.ps1")):
-        names = re.findall(r"^function\s+([\w-]+)", path.read_text(encoding="utf-8"), flags=re.MULTILINE)
+        names = re.findall(r"^\s*function\s+([\w-]+)", path.read_text(encoding="utf-8"), flags=re.MULTILINE)
         assert not duplicates(names), f"{path.name} redefines {duplicates(names)}"
 
 

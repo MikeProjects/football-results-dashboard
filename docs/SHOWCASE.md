@@ -77,11 +77,20 @@ dependencies:
 
 ```bash
 python -m pytest -q tests/test_showcase.py tests/test_showcase_web.py
-python -m ruff check src tests
+python -m ruff check src tests scripts
+python -m mypy
+node --test tests/test_time_machine_ui.cjs
 ```
 
-The existing GitHub CI also runs `mypy`, the full non-live pytest suite,
-and the no-data-history guard. These tests do not make billable Azure requests.
+The Python regressions check that an unavailable Foundry fallback describes
+the last recorded incident using **its original match clock**, even when the
+viewer stops between incidents (for example 110′ after a save at 106′).
+The dependency-free Node tests check that temporary non-AI fallbacks are **not
+cached**, later live responses **are** cached per step and audience mode, and
+the narrow-screen CSS includes a stacked scoreboard layout. Inspect the actual
+layout at 320px (including increased font size) and 375px in browser DevTools.
+The original GitHub CI also runs the full non-live pytest suite and the
+no-data-history guard. These tests do not make billable Azure requests.
 
 ## Remaining validation before submitting
 
@@ -89,6 +98,9 @@ and the no-data-history guard. These tests do not make billable Azure requests.
   running and `/time-machine` works end to end. Check minute 45, minute 106,
   penalty kick 10/10 at step 130, and rewind 130 → 45. Verify the late
   penalty score and winner are no longer visible after rewind.
+- Verify the fallback at minute 110 says the preceding save happened at 106′.
+  Confirm `Explain` retries after a temporary `unavailable` response without a
+  page reload; successful live commentary should then use the browser cache.
 - Enable the *already configured* Foundry deployment and verify one **live**
   Fan and Analyst response. Never label offline fallback as a live model call.
 - Record a public video shorter than two minutes and cite upstream Reactor

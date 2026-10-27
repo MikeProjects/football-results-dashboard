@@ -72,3 +72,13 @@
 </section>
 <script src="/static/time_machine.js" defer></script>
 {% endblock %}
+
+{% block footer %}
+  <p><strong>Scenario provenance.</strong> This original Spain–Argentina replay is a fictional,
+  selected-event simulation, not an official match feed. Historical datasets used elsewhere
+  in the app do not supply events for this what-if final.</p>
+  <p class="dim">Replay scores and sampled statistics are derived from the fictional events.
+  On demand, Microsoft Foundry explains evidence available at the selected replay step;
+  it does not receive earlier commentary or select analytics tools on this page.
+  {% if trace_id %} Page trace ID: <code class="copy" data-copy="{{ trace_id }}" title="Copy trace ID">{{ trace_id }}</code>{% endif %}</p>
+{% endblock %}

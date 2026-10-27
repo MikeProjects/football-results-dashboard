@@ -217,7 +217,8 @@ def create_app(client: httpx.AsyncClient | None = None) -> ASGIApp:
         if not isinstance(payload, dict):
             return JSONResponse({"detail": "expected a JSON object"}, status_code=400)
         step, mode = payload.get("step"), payload.get("mode")
-        if not isinstance(step, int) or isinstance(step, bool) or not 0 <= step <= LAST_STEP or mode not in ("fan", "analyst"):
+        if (not isinstance(step, int) or isinstance(step, bool) or not 0 <= step <= LAST_STEP
+                or mode not in ("fan", "analyst")):
             return JSONResponse({"detail": "step must be 0..130 and mode fan or analyst"}, status_code=400)
         # Never accept arbitrary evidence from a browser; the private service rebuilds the cutoff.
         try:

@@ -116,7 +116,7 @@ def state_at(step: int) -> dict[str, Any]:
     penalties = {HOME: 0, AWAY: 0}
     shots = {HOME: 0, AWAY: 0}
     saves = {HOME: 0, AWAY: 0}  # Saved shots BY the goalkeeper's team
-    kicks = {HOME: [], AWAY: []}
+    kicks: dict[str, list[bool]] = {HOME: [], AWAY: []}
     disallowed = {HOME: 0, AWAY: 0}
     for event in events:
         team, kind, outcome = event["team"], event["kind"], event["outcome"]

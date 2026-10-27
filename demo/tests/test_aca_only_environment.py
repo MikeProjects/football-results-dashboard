@@ -183,6 +183,7 @@ def test_preview_restores_deployment_outputs_and_two_phase_flag(operator_repo: P
     assert report["calls"].count(f"deployApps=false;{expected}") == 2
     assert report["calls"].count(f"deployApps=true;{expected}") == 2
 
+
 @pytest.mark.parametrize("source", ["shell", "dotenv"])
 def test_smoke_ignores_legacy_url_and_restores_caller(
     operator_repo: Path, source: str,
@@ -190,7 +191,7 @@ def test_smoke_ignores_legacy_url_and_restores_caller(
     legacy_url = "https://legacy-aca.example.invalid"
     if source == "dotenv":
         dotenv = operator_repo / ".env"
-        dotenv.write_text(dotenv.read_text(encoding="utf-8") + f"ACA_WEB_URL={legacy_url}\\n", encoding="utf-8")
+        dotenv.write_text(dotenv.read_text(encoding="utf-8") + f"ACA_WEB_URL={legacy_url}\n", encoding="utf-8")
         report = run_operator(operator_repo, "smoke")
     else:
         report = run_operator(operator_repo, "smoke", ACA_WEB_URL=legacy_url)

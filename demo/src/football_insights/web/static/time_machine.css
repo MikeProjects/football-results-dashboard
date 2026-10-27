@@ -62,3 +62,17 @@
   .tm-team { font-size:.88rem; }
   .tm-moments { grid-template-columns:1fr; }
 }
+/* At 320px with increased text size, the fixed 10rem center column overflows.
+   Give the score a full row and allow both team labels to shrink/wrap. */
+@media(max-width:420px) {
+  .tm-scoreboard { padding:.75rem; }
+  .tm-scoreline {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-areas:"score score" "home away";
+    gap:.5rem .25rem;
+  }
+  .tm-score-center { grid-area:score; min-width:0; }
+  .tm-scoreline > .tm-team:first-child { grid-area:home; }
+  .tm-scoreline > .tm-team:last-child { grid-area:away; }
+  .tm-team { min-width:0; overflow-wrap:anywhere; }
+}

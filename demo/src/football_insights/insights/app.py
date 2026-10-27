@@ -29,8 +29,8 @@ from ..cards import CARDS
 from ..config import get_settings
 from ..runtime import describe
 from ..schemas import ToolResult
-from ..store import CuratedStore, StoreError, load
 from ..showcase_commentary import CommentaryService
+from ..store import CuratedStore, StoreError, load
 from ..telemetry import collector, configure, instrument_app, tracer
 
 log = logging.getLogger("football_insights.insights")

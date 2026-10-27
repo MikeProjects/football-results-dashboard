@@ -35,7 +35,7 @@ function az {
         '^deployment group show ' {
             @{
                 foundryProjectEndpoint = @{value = 'https://fixture.services.ai.azure.com/api/projects/project'}
-                applicationInsightsConnectionString = @{value = 'fixture-monitoring'}
+                applicationInsightsConnectionString = @{value = 'InstrumentationKey=22222222-2222-2222-2222-222222222222;IngestionEndpoint=https://example.invalid/'}
                 registryLoginServer = @{value = 'fixture.azurecr.io'}
                 storageBlobEndpoint = @{value = 'https://fixture.blob.core.windows.net/'}
             } | ConvertTo-Json -Compress
@@ -103,7 +103,12 @@ def run_operator(root: Path, command: str = "check", **overrides: str) -> dict:
         "ALLOWED_CIDRS": "203.0.113.7/32",
         "PROJECT_TAG": "caller-project",
         "PYTHONPATH": "caller-python-path",
-        "APPLICATIONINSIGHTS_CONNECTION_STRING": "caller-monitoring",
+        # PowerShell parses this variable during telemetry initialization at startup.
+        # Use a syntactically valid but non-production Application Insights fixture.
+        "APPLICATIONINSIGHTS_CONNECTION_STRING": (
+            "InstrumentationKey=11111111-1111-1111-1111-111111111111;"
+            "IngestionEndpoint=https://example.invalid/"
+        ),
         "WEB_IMAGE_DIGEST": "caller-web",
         "ACA_DEPLOY_APPS": "caller-value",
         **overrides,

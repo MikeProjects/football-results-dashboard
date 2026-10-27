@@ -29,6 +29,10 @@ INSTRUCTIONS = (
     "Do not turn a selected sample of events into full-match totals. "
     "Write 2 or 3 short sentences in English, without a headline or markdown."
 )
+class _CommentaryRejected(ValueError):
+    """A locally generated rejection code safe for structured logs."""
+
+
 FUTURE_RESULT = re.compile(
     r"argentina (?:wins|won|has won|were crowned|is crowned)|"
     r"spain (?:loses|lost)|(?:wins|won) (?:the|on) penalties",
@@ -88,15 +92,26 @@ class CommentaryService:
                 instructions=INSTRUCTIONS + " " + style,
                 input=[{"role": "user", "content": json.dumps(evidence, ensure_ascii=False)}],
                 store=False,
-                max_output_tokens=min(self.settings.ai_max_output_tokens, 450),
+                # The model may spend output tokens on internal reasoning. Align the
+                # budget and reasoning effort with the existing, working agent path.
+                max_output_tokens=self.settings.ai_max_output_tokens,
+                reasoning={"effort": self.settings.ai_reasoning_effort},
                 timeout=self.settings.ai_timeout_seconds,
             )
             text = str(getattr(response, "output_text", "") or "").strip()
-            if not text or len(text) > 1200:
-                raise ValueError("empty or oversized commentary")
+            if not text:
+                incomplete = getattr(response, "incomplete_details", None)
+                if getattr(incomplete, "reason", None) == "max_output_tokens":
+                    raise _CommentaryRejected("output_token_limit")
+                raise _CommentaryRejected("empty_model_output")
+            if len(text) > 1200:
+                raise _CommentaryRejected("oversized_model_output")
             if step < 130 and FUTURE_RESULT.search(text):
-                raise ValueError("premature match-result claim")
+                raise _CommentaryRejected("premature_match_result")
             result.update(status="live", commentary=text)
+        except _CommentaryRejected as exc:
+            # These messages are fixed local codes, never untrusted provider text.
+            log.warning("showcase commentary rejected (%s)", str(exc))
         except Exception as exc:
             # Provider exception text can include request details. Never expose it to visitors.
             log.warning("showcase commentary unavailable (%s)", type(exc).__name__)

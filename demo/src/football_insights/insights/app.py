@@ -13,7 +13,7 @@ import logging
 import threading
 import time
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
@@ -30,6 +30,7 @@ from ..config import get_settings
 from ..runtime import describe
 from ..schemas import ToolResult
 from ..store import CuratedStore, StoreError, load
+from ..showcase_commentary import CommentaryService
 from ..telemetry import collector, configure, instrument_app, tracer
 
 log = logging.getLogger("football_insights.insights")
@@ -40,6 +41,11 @@ MAX_BODY_BYTES = 16_384
 class AskBody(BaseModel):
     question: str = Field(max_length=2000)
     deployment: str | None = None
+
+
+class ReplayExplainBody(BaseModel):
+    step: int = Field(ge=0, le=130)
+    mode: Literal["fan", "analyst"]
 
 
 class State:
@@ -189,6 +195,11 @@ def create_app() -> ASGIApp:
         except QuestionRejected as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return answer.model_dump(mode="json")
+
+    @app.post("/v1/time-machine/explain")
+    def explain_replay(body: ReplayExplainBody) -> dict[str, Any]:
+        """Isolated from historical tool cards and prior agent conversations."""
+        return CommentaryService(settings).explain(body.step, body.mode)
 
     @app.get("/v1/traces/{trace_id}")
     def trace_spans(trace_id: str) -> list[dict[str, Any]]:

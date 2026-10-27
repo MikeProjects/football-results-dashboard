@@ -45,8 +45,30 @@ function az {
             $calls.Add("deployApps=$env:ACA_DEPLOY_APPS;registry=$env:ACR_LOGIN_SERVER;webDigest=$env:WEB_IMAGE_DIGEST")
             return
         }
+        '^containerapp show ' {
+            if ($call -match '--name football-web') {
+                if ($call -notmatch '--resource-group fixture-aca') { throw "Wrong ACA web resource group: $call" }
+                if ($env:TEST_FAILURE -eq 'web') { $global:LASTEXITCODE = 1; return }
+                'fixture-aca.example.invalid'; return
+            }
+            if ($call -match '-n football-insights') {
+                'insights.internal.example.invalid'; return
+            }
+            throw "Unexpected ACA query: $call"
+        }
         default { throw "Unexpected mock Azure call: $call" }
     }
+}
+function Invoke-WebRequest {
+    param([string]$Uri, [int]$TimeoutSec, [switch]$SkipHttpErrorCheck)
+    $calls.Add("http=$Uri")
+    if ($Uri -like 'https://insights.internal.example.invalid/*') {
+        return [pscustomobject]@{ StatusCode = 404; Content = '' }
+    }
+    if ($Uri -notlike 'https://fixture-aca.example.invalid*') {
+        throw "Validation escaped the isolated ACA endpoint: $Uri"
+    }
+    return [pscustomobject]@{ StatusCode = 200; Content = 'image bbbbbbbbbbbb data cv-0123456789ab' }
 }
 $before = [Environment]::GetEnvironmentVariables('Process')
 $runs = @(foreach ($iteration in 1..2) {
@@ -89,7 +111,8 @@ def operator_repo(tmp_path: Path) -> Path:
 def run_operator(root: Path, command: str = "check", **overrides: str) -> dict:
     # Copy only scripts into the fixture; remove real deployment settings from the child process.
     names = set(re.findall(r"^([A-Z_]+)=", (REPO_ROOT / ".env.example").read_text(), flags=re.MULTILINE))
-    env = {key: value for key, value in os.environ.items() if key not in names}
+    # A caller URL is supplied only by the test case, not the host test-runner environment.
+    env = {key: value for key, value in os.environ.items() if key not in names and key != "ACA_WEB_URL"}
     env.update({
         "TEST_ENTRYPOINT": str(root / "demo" / "scripts" / "aca-only.ps1"),
         "TEST_COMMAND": command,
@@ -159,3 +182,32 @@ def test_preview_restores_deployment_outputs_and_two_phase_flag(operator_repo: P
     expected = "registry=fixture.azurecr.io;webDigest=sha256:" + "b" * 64
     assert report["calls"].count(f"deployApps=false;{expected}") == 2
     assert report["calls"].count(f"deployApps=true;{expected}") == 2
+
+@pytest.mark.parametrize("source", ["shell", "dotenv"])
+def test_smoke_ignores_legacy_url_and_restores_caller(
+    operator_repo: Path, source: str,
+) -> None:
+    legacy_url = "https://legacy-aca.example.invalid"
+    if source == "dotenv":
+        dotenv = operator_repo / ".env"
+        dotenv.write_text(dotenv.read_text(encoding="utf-8") + f"ACA_WEB_URL={legacy_url}\\n", encoding="utf-8")
+        report = run_operator(operator_repo, "smoke")
+    else:
+        report = run_operator(operator_repo, "smoke", ACA_WEB_URL=legacy_url)
+
+    assert all(run["error"] is None for run in report["runs"]), report
+    web_queries = [call for call in report["calls"] if call.startswith("containerapp show") and "football-web" in call]
+    assert len(web_queries) == 2, report
+    assert all("--resource-group fixture-aca" in call for call in web_queries), report
+    requests = [call for call in report["calls"] if call.startswith("http=")]
+    assert len(requests) == 10, report  # Four web URLs and one internal health check per run.
+    assert all(legacy_url not in call for call in requests), report
+    assert sum("http=https://fixture-aca.example.invalid" in call for call in requests) == 8, report
+
+
+def test_smoke_web_lookup_failure_restores_legacy_url(operator_repo: Path) -> None:
+    report = run_operator(
+        operator_repo, "smoke", ACA_WEB_URL="https://legacy-aca.example.invalid", TEST_FAILURE="web",
+    )
+    assert all("no ingress address yet" in run["error"] for run in report["runs"]), report
+    assert not any(call.startswith("http=") for call in report["calls"]), report

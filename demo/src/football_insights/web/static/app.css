@@ -18,7 +18,8 @@ main { padding: 1rem 1.4rem 2rem; max-width: 1500px; margin: 0 auto; }
 .brand h1 a { color: var(--fg); text-decoration: none; }
 .brand .sub { color: var(--dim); font-size: 0.85rem; }
 .nav a { margin-right: 1rem; font-size: 1rem; }
-.zoom { display: flex; gap: 0.3rem; }
+/* Allow text-size controls to stay usable at narrow widths and large A+ fonts. */
+.zoom { display: flex; flex-wrap: wrap; max-width: 100%; gap: 0.3rem; }
 button { font: inherit; font-size: 0.9rem; color: var(--fg); background: #222b36; border: 2px solid var(--line);
          border-radius: 6px; padding: 0.25rem 0.7rem; cursor: pointer; }
 button:hover, button:focus-visible { border-color: var(--accent); outline: none; }
@@ -90,6 +91,8 @@ th { color: var(--accent); }
 .bar { position: absolute; top: 0; height: 100%; border-radius: 2px; }
 .attrs summary { font-weight: 400; font-size: 0.8rem; color: var(--dim); }
 .copy { cursor: copy; border-bottom: 1px dashed var(--dim); }
+/* Long trace IDs must break within the footer rather than widen the page. */
+code.copy { display: inline-block; max-width: 100%; overflow-wrap: anywhere; word-break: break-all; }
 .copied { color: var(--ok); }
 
 .foot { border-top: 2px solid var(--line); padding: 0.8rem 1.4rem 1.4rem; font-size: 0.8rem; color: var(--dim); }

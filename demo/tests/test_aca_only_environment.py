@@ -42,7 +42,7 @@ function az {
             return
         }
         '^deployment group what-if ' {
-            $calls.Add("deployApps=$env:ACA_DEPLOY_APPS;registry=$env:ACR_LOGIN_SERVER")
+            $calls.Add("deployApps=$env:ACA_DEPLOY_APPS;registry=$env:ACR_LOGIN_SERVER;webDigest=$env:WEB_IMAGE_DIGEST")
             return
         }
         default { throw "Unexpected mock Azure call: $call" }
@@ -79,6 +79,9 @@ def operator_repo(tmp_path: Path) -> Path:
     deploy.mkdir(parents=True)
     (deploy / "digests.json").write_text(
         json.dumps({name: "sha256:" + "a" * 64 for name in ("web", "insights", "ingest")}), encoding="utf-8"
+    )
+    (deploy / "aca-only-digests.json").write_text(
+        json.dumps({name: "sha256:" + "b" * 64 for name in ("web", "insights", "ingest")}), encoding="utf-8"
     )
     return root
 
@@ -153,5 +156,6 @@ def test_failures_restore_environment(operator_repo: Path, overrides: dict[str, 
 def test_preview_restores_deployment_outputs_and_two_phase_flag(operator_repo: Path) -> None:
     report = run_operator(operator_repo, "plan-aca")
     assert all(run["error"] is None for run in report["runs"]), report
-    assert report["calls"].count("deployApps=false;registry=fixture.azurecr.io") == 2
-    assert report["calls"].count("deployApps=true;registry=fixture.azurecr.io") == 2
+    expected = "registry=fixture.azurecr.io;webDigest=sha256:" + "b" * 64
+    assert report["calls"].count(f"deployApps=false;{expected}") == 2
+    assert report["calls"].count(f"deployApps=true;{expected}") == 2

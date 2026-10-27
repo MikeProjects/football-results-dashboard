@@ -130,3 +130,16 @@ test("narrow-screen stylesheet places the score above both teams", () => {
   assert.match(css, /grid-template-areas:"score score" "home away"/);
   assert.match(css, /\.tm-score-center\s*\{\s*grid-area:score/);
 });
+
+test("enlarged text stacks stats and evidence inside the narrow viewport", () => {
+  const css = fs.readFileSync(
+    path.join(__dirname, "..", "src", "football_insights", "web", "static", "time_machine.css"),
+    "utf8"
+  );
+  const mobile = css.split("@media(max-width:420px)")[1];
+  assert.ok(mobile, "mobile rules should exist");
+  assert.match(mobile, /\.tm-stats\s*\{\s*grid-template-columns:minmax\(0,1fr\)/);
+  assert.match(mobile, /\.tm-stat-team\s*\{\s*flex-wrap:wrap/);
+  assert.match(mobile, /\.tm-evidence dl\s*\{\s*grid-template-columns:minmax\(0,1fr\)/);
+  assert.match(mobile, /\.tm-evidence dt, \.tm-evidence dd\s*\{[^}]*overflow-wrap:anywhere/);
+});

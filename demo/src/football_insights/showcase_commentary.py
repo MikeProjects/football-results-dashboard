@@ -122,11 +122,17 @@ class CommentaryService:
                 reasoning={"effort": self.settings.ai_reasoning_effort},
                 timeout=self.settings.ai_timeout_seconds,
             )
-            text = str(getattr(response, "output_text", "") or "").strip()
-            if not text:
-                incomplete = getattr(response, "incomplete_details", None)
+            # Partial output can contain plausible prose, but is not a completed
+            # explanation. Never label or cache a truncated Foundry response as live.
+            incomplete = getattr(response, "incomplete_details", None)
+            if incomplete is not None:
                 if getattr(incomplete, "reason", None) == "max_output_tokens":
                     raise _CommentaryRejected("output_token_limit")
+                raise _CommentaryRejected("incomplete_model_response")
+            if getattr(response, "status", None) != "completed":
+                raise _CommentaryRejected("non_completed_model_response")
+            text = str(getattr(response, "output_text", "") or "").strip()
+            if not text:
                 raise _CommentaryRejected("empty_model_output")
             if len(text) > 1200:
                 raise _CommentaryRejected("oversized_model_output")

@@ -130,9 +130,11 @@ def test_commentary_rejections_are_diagnosable_without_leaking_text(
                                ai_max_output_tokens=1200, ai_reasoning_effort="low",
                                ai_timeout_seconds=10.0)
     service = CommentaryService(settings, client_factory=lambda: SimpleNamespace(responses=FakeResponses()))
-    result = service.explain(106, "fan")
+    # Technical leakage was observed after the shootout, so exercise that cursor too.
+    step = 130 if expected_rejection == "internal_terminology" else 106
+    result = service.explain(step, "analyst")
     assert result["status"] == "unavailable"
-    assert result["commentary"] == summary(106)
+    assert result["commentary"] == summary(step)
     assert f"showcase commentary rejected ({expected_rejection})" in caplog.text
     if output_text:
         assert output_text[:50] not in caplog.text

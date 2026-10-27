@@ -109,6 +109,13 @@ def test_unsupported_future_result_is_hidden() -> None:
         ("", None, "empty_model_output"),
         ("x" * 1201, None, "oversized_model_output"),
         ("Argentina wins on penalties.", None, "premature_match_result"),
+        ("The supplied log says the keeper made five saves.", None, "internal_terminology"),
+        ("According to the LOG, Spain missed a penalty.", None, "internal_terminology"),
+        ("recorded_saves shows five stops by Argentina.", None, "internal_terminology"),
+        ("Argentina converted penalties P02, P04 and P10.", None, "internal_terminology"),
+        ("E017 was a turning point in extra time.", None, "internal_terminology"),
+        ("The JSON payload identifies the winner.", None, "internal_terminology"),
+        ("The event ID records Spain's missed penalty.", None, "internal_terminology"),
     ],
 )
 def test_commentary_rejections_are_diagnosable_without_leaking_text(
@@ -129,6 +136,30 @@ def test_commentary_rejections_are_diagnosable_without_leaking_text(
     assert f"showcase commentary rejected ({expected_rejection})" in caplog.text
     if output_text:
         assert output_text[:50] not in caplog.text
+
+
+def test_natural_football_language_passes_validation_in_both_modes() -> None:
+    """The guard must not mistake ordinary football terms for internal metadata."""
+    text = ("Evidence: Spain have five recorded shots and Argentina have two saves. "
+            "Interpretation: Spain created more chances, but the causes are uncertain.")
+    calls: list[dict] = []
+
+    class NaturalResponses:
+        def create(self, **kwargs):  # type: ignore[no-untyped-def]
+            calls.append(kwargs)
+            return SimpleNamespace(output_text=text)
+
+    settings = SimpleNamespace(narrative_mode="live", ai_model_deployment="test",
+                               ai_max_output_tokens=1200, ai_reasoning_effort="low",
+                               ai_timeout_seconds=10.0)
+    service = CommentaryService(settings, client_factory=lambda: SimpleNamespace(responses=NaturalResponses()))
+    for mode in ("fan", "analyst"):
+        result = service.explain(45, mode)
+        assert result["status"] == "live"
+        assert result["commentary"] == text
+    assert all("Speak to football viewers" in call["instructions"] for call in calls)
+    assert calls[0]["instructions"] != calls[1]["instructions"]
+    assert "event log" not in " ".join(evidence_at(45)["limitations"]).lower()
 
 
 def test_disabled_ai_uses_honestly_labeled_summary() -> None:

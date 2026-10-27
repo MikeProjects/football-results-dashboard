@@ -87,8 +87,27 @@ the last recorded incident using **its original match clock**, even when the
 viewer stops between incidents (for example 110′ after a save at 106′).
 The dependency-free Node tests check that temporary non-AI fallbacks are **not
 cached**, later live responses **are** cached per step and audience mode, and
-the narrow-screen CSS includes a stacked scoreboard layout. Inspect the actual
-layout at 320px (including increased font size) and 375px in browser DevTools.
+the narrow-screen CSS includes a stacked scoreboard, statistics and evidence
+layout. Foundry responses must have `status="completed"` and no
+`incomplete_details` before partial text can be accepted as live commentary;
+incomplete responses use a retriable non-AI fallback.
+
+For the second-review accessibility regression, use Chrome DevTools
+**Responsive 320×864** and press the page's **A+** until the root font is
+28px, then 40px; check that the statistics cards and evidence terms/values
+stack and no horizontal scroll appears. Repeat at 375px if time permits.
+In DevTools Console, check:
+```javascript
+console.table({
+  viewport: window.innerWidth,
+  rootFont: getComputedStyle(document.documentElement).fontSize,
+  statsColumns: getComputedStyle(document.querySelector(".tm-stats")).gridTemplateColumns,
+  evidenceColumns: getComputedStyle(document.querySelector(".tm-evidence dl")).gridTemplateColumns,
+  horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth
+});
+```
+The check is a real-browser visual step; CSS source assertions alone are not
+proof that every element fits at every font size.
 The original GitHub CI also runs the full non-live pytest suite and the
 no-data-history guard. These tests do not make billable Azure requests.
 

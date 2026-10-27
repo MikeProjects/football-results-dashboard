@@ -85,9 +85,13 @@ your identity can access them. The next step checks the account and model
 deployment in Azure; it does not verify the project's existence or invoke it.
 
 The script runs in the current PowerShell process and temporarily points
-`AZURE_RESOURCE_GROUP` to the isolated ACA group. It restores the caller's environment
+`AZURE_RESOURCE_GROUP` to the isolated ACA group. It also temporarily removes any
+inherited `ACA_WEB_URL` (from the shell or `.env`) so ACA-only `smoke` and `load-test`
+resolve the web ingress address from the **dedicated ACA resource group**, rather
+than accidentally testing a legacy deployment. It restores the caller's environment
 in a `finally` block, including when a command fails. This covers existing values and
-variables introduced by `.env`, defaults, and deployment outputs. The `.env` file is not rewritten.
+variables introduced by `.env`, defaults, and deployment outputs, including the
+original `ACA_WEB_URL` value. The `.env` file is not rewritten.
 
 ## 1. Read-only checks
 

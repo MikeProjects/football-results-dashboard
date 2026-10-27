@@ -57,21 +57,28 @@
     const snapshot = timeline.snapshots[cursor];
     const score = snapshot.score;
     el("tm-score").textContent = score[home] + " : " + score[away];
-    el("tm-clock").textContent = snapshot.clock + " · " + phases[snapshot.phase];
+    // The reducer still marks minute 45 as first-half; only the viewer label changes.
+    const phaseLabel = cursor === 45 ? "Half-time" : phases[snapshot.phase];
+    el("tm-clock").textContent = snapshot.clock + " · " + phaseLabel;
     el("tm-slider").value = String(cursor);
     el("tm-progress-text").textContent = cursor + " / " + timeline.last_step;
     el("tm-back").disabled = cursor === 0;
     el("tm-next").disabled = cursor === timeline.last_step;
 
     const penaltyPanel = el("tm-penalties");
-    penaltyPanel.hidden = snapshot.phase !== "shootout" && cursor !== 120;
-    if (!penaltyPanel.hidden) {
+    const showPenalties = cursor === 120 || snapshot.phase === "shootout";
+    penaltyPanel.hidden = !showPenalties;
+    if (showPenalties) {
       el("tm-penalty-score").textContent =
         snapshot.penalties[home] + " : " + snapshot.penalties[away];
       el("tm-penalty-kicks").replaceChildren(
-        penaltyDots("Spain", snapshot.kicks[home]),
-        penaltyDots("Argentina", snapshot.kicks[away])
+        penaltyDots(home, snapshot.kicks[home]),
+        penaltyDots(away, snapshot.kicks[away])
       );
+    } else {
+      // Rewinding clears previously revealed kicks, not just their visibility.
+      el("tm-penalty-score").textContent = "0 : 0";
+      el("tm-penalty-kicks").replaceChildren();
     }
     const winner = el("tm-winner");
     winner.hidden = !snapshot.winner;
@@ -79,20 +86,26 @@
 
     const justOccurred = timeline.events.filter(e => e.step === cursor);
     el("tm-current-event").textContent = justOccurred.length
-      ? justOccurred.map(e => e.clock + " · " + e.title + " — " + e.detail).join(" ")
+      ? justOccurred.map(e => (e.clock || snapshot.clock) + " · " + e.title + " — " + e.detail).join(" ")
       : "No major recorded incident during this minute. The previous state carries forward.";
 
     const stats = el("tm-stats");
     stats.replaceChildren();
     const items = [
-      ["Recorded shots", scoreText(snapshot.shots_recorded)],
-      ["Recorded saves", scoreText(snapshot.saves_recorded)],
-      ["Disallowed goals", scoreText(snapshot.disallowed_goals)],
-      ["Match goals", scoreText(snapshot.score)]
+      ["Recorded shots", snapshot.shots_recorded],
+      ["Recorded saves", snapshot.saves_recorded],
+      ["Disallowed goals", snapshot.disallowed_goals],
+      ["Match goals", snapshot.score]
     ];
-    for (const [name, value] of items) {
+    for (const [name, values] of items) {
       const box = textNode("div", "", "tm-stat");
-      box.append(textNode("span", name), textNode("strong", value));
+      const teams = textNode("div", "", "tm-stat-teams");
+      for (const team of [home, away]) {
+        const line = textNode("div", "", "tm-stat-team");
+        line.append(textNode("span", team), textNode("strong", String(values[team])));
+        teams.append(line);
+      }
+      box.append(textNode("span", name), teams);
       stats.append(box);
     }
 
@@ -109,7 +122,7 @@
     const dl = document.createElement("dl");
     for (const [label, value] of [
       ["Replay cutoff", snapshot.clock],
-      ["Known event IDs", recentIds],
+      ["Recent event IDs", recentIds],
       ["Match score", score[home] + "–" + score[away]],
       ["Penalty score", snapshot.penalties[home] + "–" + snapshot.penalties[away]],
       ["Data provenance", "Selected synthetic what-if events; no official event feed"]
@@ -117,10 +130,6 @@
       dl.append(textNode("dt", label), textNode("dd", value));
     }
     evidence.replaceChildren(dl);
-  }
-
-  function scoreText(values) {
-    return values[home] + " / " + values[away];
   }
 
   function seek(step) {

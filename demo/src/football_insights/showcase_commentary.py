@@ -67,9 +67,17 @@ def summary(step: int) -> str:
     if step > 120:
         p = state["penalties"]
         return f"The match ended {s[HOME]}–{s[AWAY]}. Shootout in progress: {HOME} {p[HOME]}–{p[AWAY]} {AWAY}."
-    last = evidence_at(step)["events"]
-    if last:
-        return f"{state['clock']}: {last[-1]['detail']} Score: {HOME} {s[HOME]}–{s[AWAY]} {AWAY}."
+    events = evidence_at(step)["events"]
+    if events:
+        last = events[-1]
+        if state["clock"] == last["clock"]:
+            incident = f"{last['clock']}: {last['detail']}"
+        else:
+            # Between events, the replay cursor advances but the previous incident
+            # must retain its original time; never present it as a new occurrence.
+            incident = (f"At {state['clock']}, no new recorded incident. "
+                        f"Last recorded event at {last['clock']}: {last['detail']}")
+        return f"{incident} Score: {HOME} {s[HOME]}–{s[AWAY]} {AWAY}."
     return f"{HOME} {s[HOME]}–{s[AWAY]} {AWAY}. The fictional replay has not started."
 
 

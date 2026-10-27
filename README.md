@@ -58,6 +58,8 @@ Details: [docs/SETUP.md](docs/SETUP.md).
 
 ## Deploy to AKS and ACA
 
+For an **ACA-only test that reuses an existing Foundry deployment**, follow [docs/ACA-ONLY.md](docs/ACA-ONLY.md) instead of the two-platform sequence below. It keeps the application in a separate resource group and does not deploy new models.
+
 The same images deploy to Azure Kubernetes Service and to Azure Container Apps with Bicep and the Azure CLI. Everything authenticates with Microsoft Entra ID; there are no keys. Fill in your names in `.env`, then run the steps in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md):
 
 ```powershell

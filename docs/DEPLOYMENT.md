@@ -1,5 +1,7 @@
 # Azure deployment guide
 
+> **ACA only, reusing an existing Foundry account in another resource group?** Use [ACA-ONLY.md](ACA-ONLY.md) instead of this original AKS-and-ACA procedure. Its separate commands do not create Foundry deployments or AKS resources.
+
 > **Verified against Azure on 2026-09-30** in `westus3`. Both platforms were deployed with these commands into an empty resource group, and a second run of the whole sequence changed nothing but the new image digests. The rollout, rollback, reset, ingest, trace, allow-list, and teardown dry-run commands ran in both PowerShell and Bash. Problems found along the way are fixed in the templates and scripts; the ones you might still meet are under [Troubleshooting](#troubleshooting).
 
 This guide deploys the same football insights images to AKS Automatic and Azure Container Apps (ACA) with Microsoft Foundry, Azure Storage, Container Registry, workspace-based Application Insights, and keyless Microsoft Entra authentication.

@@ -46,7 +46,7 @@
         <li><span>Neutral flag, but a participant's country</span><strong>{{ dq.venues.neutral_flag_but_venue_is_participant }}</strong></li>
         <li><span>Home flag, but neither team's country</span><strong>{{ dq.venues.home_flag_but_venue_is_neither_team }}</strong></li>
         <li><span>Shootouts joined / excluded</span><strong>{{ dq.shootouts.joined }} / {{ dq.shootouts.excluded_without_match }}</strong></li>
-        <li><span>Duplicate match keys</span><strong>{{ dq.duplicate_match_keys.keys }} ({{ dq.duplicate_match_keys.handling }})</strong></li>
+        <li><span>Duplicate match keys</span><strong>{{ dq.duplicate_match_keys["keys"] }} ({{ dq.duplicate_match_keys.handling }})</strong></li>
         <li><span>WDI economies kept / entities excluded</span><strong>{{ dq.wdi.economies }} / {{ dq.wdi.excluded_aggregates_or_unclassified }}</strong></li>
       </ul>
     </div>

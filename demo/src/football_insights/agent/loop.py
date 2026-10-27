@@ -29,6 +29,14 @@ log = logging.getLogger("football_insights.agent")
 tracer = trace.get_tracer(__name__)
 PROVIDER = "azure.ai.openai"
 AGENT_NAME = "football-insights"
+# Only fixed, recognized provider codes are safe to export. A syntactically valid
+# but arbitrary code can still contain a credential or user-supplied text.
+SAFE_PROVIDER_CODES = frozenset({
+    "content_filter", "content_policy_violation", "DeploymentNotFound", "insufficient_quota",
+    "invalid_api_key", "invalid_request_error", "model_not_found", "OperationNotSupported",
+    "PermissionDenied", "rate_limit_exceeded", "RateLimitReached", "ResourceNotFound",
+    "ResponsibleAIPolicyViolation", "server_error", "ServiceUnavailable",
+})
 
 ToolRunner = Callable[[str, dict[str, Any]], tuple[ToolResult, float]]
 
@@ -69,12 +77,29 @@ def _item_dict(item: Any) -> dict[str, Any]:
     return dict(item.model_dump(exclude_none=True))
 
 
-def _is_content_filter(exc: Exception) -> bool:
+def _provider_code(exc: Exception) -> str | None:
     code = getattr(exc, "code", None)
     body = getattr(exc, "body", None)
     if isinstance(body, dict):
-        code = code or body.get("code") or (body.get("error") or {}).get("code")
-    return code == "content_filter" or "content_filter" in str(exc)
+        error = body.get("error")
+        code = code or body.get("code") or (error.get("code") if isinstance(error, dict) else None)
+    return code if isinstance(code, str) and code in SAFE_PROVIDER_CODES else None
+
+
+def _is_content_filter(exc: Exception) -> bool:
+    return _provider_code(exc) == "content_filter" or "content_filter" in str(exc)
+
+
+def _safe_error_details(exc: Exception) -> dict[str, str | int]:
+    """Export fixed metadata only: provider messages can echo credentials and user input."""
+    details: dict[str, str | int] = {"error": type(exc).__name__}
+    status = getattr(exc, "status_code", None)
+    if isinstance(status, int) and not isinstance(status, bool) and 100 <= status <= 599:
+        details["http_status"] = status
+    code = _provider_code(exc)
+    if code is not None:
+        details["provider_code"] = code
+    return details
 
 
 class InsightsAgent:
@@ -160,7 +185,9 @@ class InsightsAgent:
                               results=run.results, tool_calls=run.calls, model=run.usage,
                               grounding=Grounding(status="not_applicable"), caveats=_caveats(run.results),
                               cannot_tell=_cannot(run.results))
-            log.warning("live model call failed", extra={"fields": {"error": type(exc).__name__}})
+            error_details = _safe_error_details(exc)
+            visible_details = ", ".join(f"{key}={value}" for key, value in error_details.items())
+            log.warning("live model call failed: %s", visible_details, extra={"fields": error_details})
             trace.get_current_span().set_attribute("error.type", type(exc).__name__)
             cached = narratives.load(self.settings.narrative_cache_dir, question)
             if cached is not None:

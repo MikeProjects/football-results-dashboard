@@ -83,6 +83,16 @@ function Get-DeploymentOutputs([string]$Name) {
     return $json | ConvertFrom-Json
 }
 function Import-DeploymentOutputs {
+    # The isolated ACA workflow has its own foundation, with no Foundry or AKS
+    # provisioning. Preserve the original two-platform workflow unchanged.
+    if ($env:ACA_ONLY_MODE -eq 'true') {
+        $base = Get-DeploymentOutputs 'football-aca-base'
+        $env:FOUNDRY_PROJECT_ENDPOINT = $base.foundryProjectEndpoint.value
+        $env:APPLICATIONINSIGHTS_CONNECTION_STRING = $base.applicationInsightsConnectionString.value
+        $env:ACR_LOGIN_SERVER = $base.registryLoginServer.value
+        $env:STORAGE_ACCOUNT_URL = $base.storageBlobEndpoint.value.TrimEnd('/')
+        return
+    }
     # Derived values live only in this process; they are never written to .env or printed.
     $foundation = Get-DeploymentOutputs 'football-foundation'
     $platform = Get-DeploymentOutputs 'football-platform'
@@ -160,7 +170,21 @@ function Get-ImageTag {
     if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($short)) { return $short.Trim() }
     return 'local'
 }
+function Get-DigestsFileName([string]$Output = '') {
+    # Isolate the ACA-only build from the legacy v1 rollback baseline and v2 rollout.
+    if ($env:ACA_ONLY_MODE -eq 'true') {
+        if (-not [string]::IsNullOrWhiteSpace($Output)) {
+            throw 'ACA-only digests do not support -Output; use the dedicated ACA-only artifact.'
+        }
+        return 'aca-only-digests.json'
+    }
+    if ($Output -eq 'v2') { return 'digests-v2.json' }
+    if ([string]::IsNullOrWhiteSpace($Output)) { return 'digests.json' }
+    throw 'Use -Output v2 or omit -Output.'
+}
 function Invoke-BuildPush([string]$Output = '') {
+    # Validate the destination before signing in, building or pushing images.
+    $fileName = Get-DigestsFileName $Output
     Set-DemoSubscription
     Import-DeploymentOutputs
     $acrName = Get-RequiredEnv 'ACR_NAME'
@@ -175,15 +199,14 @@ function Invoke-BuildPush([string]$Output = '') {
         if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($digest)) { throw "Could not resolve the digest of $remote" }
         $digests[$target] = ($digest | ConvertFrom-Json)
     }
-    $fileName = if ($Output -eq 'v2') { 'digests-v2.json' } elseif ([string]::IsNullOrWhiteSpace($Output)) { 'digests.json' } else { throw 'Use -Output v2 or omit -Output.' }
     $out = Join-Path (Get-DeployDir) $fileName
     $digests | ConvertTo-Json | Set-Content -Encoding utf8 $out
-    Write-Host "Pushed tag $tag; digests recorded in $out (both platforms deploy these exact digests)."
+    Write-Host "Pushed tag $tag; digests recorded in $out."
 }
 function Import-Digests([string]$Output = '') {
-    $fileName = if ($Output -eq 'v2') { 'digests-v2.json' } else { 'digests.json' }
+    $fileName = Get-DigestsFileName $Output
     $path = Join-Path (Get-DeployDir) $fileName
-    if (-not (Test-Path $path)) { throw "Run demo build-push first; $fileName is missing." }
+    if (-not (Test-Path $path)) { throw "Missing digest artifact $fileName. Run the corresponding workflow build-push first; no fallback to another workflow is allowed." }
     $json = Get-Content $path -Raw | ConvertFrom-Json
     $env:WEB_IMAGE_DIGEST = $json.web
     $env:INSIGHTS_IMAGE_DIGEST = $json.insights

@@ -69,6 +69,10 @@ def operator_settings_removed(request: pytest.FixtureRequest, monkeypatch: pytes
     process, and a configured Foundry endpoint or model deployment changes what the tests expect. Live tests keep
     the environment, because that is how they reach the model."""
     if request.node.get_closest_marker("live") is None:
+        # Pydantic loads a .env relative to the current working directory even after
+        # process environment variables are cleared. Disable that implicit source
+        # so non-live tests cannot pick up real Foundry configuration.
+        monkeypatch.setitem(Settings.model_config, "env_file", None)
         for name in Settings.model_fields:
             monkeypatch.delenv(name.upper(), raising=False)
     get_settings.cache_clear()

@@ -1,5 +1,7 @@
 /* Synthetic replay showcase. Scoped styles preserve the original seven-card dashboard. */
 .tm { --tm-panel:#151f2b; --tm-edge:#3e4c60; --tm-blue:#74c7f5; }
+/* Keep rewound, as-yet-unknown outcomes hidden even if another rule sets display. */
+.tm [hidden] { display:none !important; }
 .tm-intro { display:flex; flex-wrap:wrap; gap:1rem; justify-content:space-between; align-items:center; }
 .tm-intro h2 { font-size:2rem; margin:0; line-height:1.1; letter-spacing:-.03em; }
 .tm-intro p { margin:.4rem 0; color:#c5d4e1; }
@@ -36,7 +38,9 @@
 .tm-event { background:#253449; border-left:3px solid #56b4e9; padding:.65rem; min-height:3rem; font-size:.86rem; margin-bottom:1.1rem; }
 .tm-stats { display:grid; grid-template-columns:1fr 1fr; gap:.4rem; font-size:.78rem; }
 .tm-stat { border:1px solid var(--tm-edge); padding:.6rem; border-radius:6px; }
-.tm-stat strong { display:block; font-size:1.1rem; color:#e5f3ff; }
+.tm-stat-teams { margin-top:.35rem; }
+.tm-stat-team { display:flex; align-items:baseline; justify-content:space-between; gap:.35rem; }
+.tm-stat-team strong { font-size:1.1rem; color:#e5f3ff; font-variant-numeric:tabular-nums; }
 .tm-panel-heading { display:flex; align-items:center; flex-wrap:wrap; justify-content:space-between; gap:.5rem; }
 .tm-panel-heading h3 { margin:0; }
 .tm-mode { display:flex; gap:.3rem; }

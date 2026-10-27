@@ -36,6 +36,16 @@ def test_showcase_routes_use_only_trusted_cursor_parameters() -> None:
             assert page.status_code == 200
             assert "Football Time Machine" in page.text
             assert "time_machine.js" in page.text
+            assert "Scenario provenance." in page.text
+            assert "not an official match feed" in page.text
+            assert "does not receive earlier commentary" in page.text
+            assert "The AI model only selects tools" not in page.text
+            assert 'id="tm-penalties" class="tm-penalties" hidden' in page.text
+            # The dashboard retains its own historical-data attribution.
+            home = await client.get("/")
+            assert home.status_code == 200
+            assert "Data attribution." in home.text
+            assert "Scenario provenance." not in home.text
             data = (await client.get("/api/time-machine")).json()
             assert len(data["snapshots"]) == 131
             assert len(data["events"]) == 30

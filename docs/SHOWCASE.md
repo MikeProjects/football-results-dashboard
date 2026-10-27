@@ -56,10 +56,12 @@ precision from this script.
 4. **Stateless API calls.** A fresh `responses.create` call is made only on
    demand. Earlier commentaries are never provided as context; an optional
    client-side display cache is also never returned to the model.
-5. **Honest degradation.** If Foundry is off, times out, or produces a
-   disallowed premature result, deterministic text is labeled as non-AI.
-   This is a small safeguard, **not a proof that every natural-language
-   assertion is grounded**.
+5. **Honest degradation and audience-ready language.** The model is asked
+   to describe football naturally, without exposing internal evidence keys,
+   event IDs, or developer terms. A small output check rejects those markers,
+   as well as premature match results; on rejection or Foundry failure, the
+   deterministic summary is clearly labeled non-AI. This is a practical
+   safeguard, **not a proof that every natural-language assertion is grounded**.
 6. **Constrained original sample.** No copyrighted event feed, match video,
    raw Kaggle dataset or licensed Opta/WhoScored data is copied here.
 

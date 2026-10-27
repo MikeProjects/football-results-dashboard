@@ -167,7 +167,7 @@ def evidence_at(step: int) -> dict[str, Any]:
                     "kind": e["kind"], "outcome": e["outcome"], "detail": e["detail"]}
                    for e in events],
         "limitations": [
-            "Events are a selected synthetic sample, not a full-match event log.",
+            "These selected fictional moments are not a complete record of the match.",
             "Psychological pressure and tactical causation cannot be proven from these events.",
             "Do not predict or reveal events beyond this cutoff.",
         ],

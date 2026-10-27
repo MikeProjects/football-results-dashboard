@@ -75,8 +75,10 @@ Matching this URL structure does not confirm that the resources exist or that
 your identity can access them. The next step checks the account and model
 deployment in Azure; it does not verify the project's existence or invoke it.
 
-The script changes `AZURE_RESOURCE_GROUP` **in the running PowerShell child process only**,
-pointing it to the isolated ACA group. Your original `.env` and existing Foundry group remain untouched.
+The script runs in the current PowerShell process and temporarily points
+`AZURE_RESOURCE_GROUP` to the isolated ACA group. It restores the caller's environment
+in a `finally` block, including when a command fails. This covers existing values and
+variables introduced by `.env`, defaults, and deployment outputs. The `.env` file is not rewritten.
 
 ## 1. Read-only checks
 

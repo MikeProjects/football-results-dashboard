@@ -143,3 +143,14 @@ test("enlarged text stacks stats and evidence inside the narrow viewport", () =>
   assert.match(mobile, /\.tm-evidence dl\s*\{\s*grid-template-columns:minmax\(0,1fr\)/);
   assert.match(mobile, /\.tm-evidence dt, \.tm-evidence dd\s*\{[^}]*overflow-wrap:anywhere/);
 });
+
+test("shared header zoom and trace IDs wrap instead of widening small viewports", () => {
+  const css = fs.readFileSync(
+    path.join(__dirname, "..", "src", "football_insights", "web", "static", "app.css"),
+    "utf8"
+  );
+  assert.match(css, /\.zoom\s*\{[^}]*flex-wrap:\s*wrap/);
+  assert.match(css, /code\.copy\s*\{[^}]*max-width:\s*100%/);
+  assert.match(css, /code\.copy\s*\{[^}]*overflow-wrap:\s*anywhere/);
+  assert.match(css, /code\.copy\s*\{[^}]*word-break:\s*break-all/);
+});

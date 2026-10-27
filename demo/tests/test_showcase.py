@@ -71,7 +71,7 @@ def test_commentary_calls_are_independent_and_cannot_read_future() -> None:
             return SimpleNamespace(output_text="The keeper makes another important save.")
 
     settings = SimpleNamespace(narrative_mode="live", ai_model_deployment="gpt-5-mini-1",
-                               ai_max_output_tokens=450, ai_timeout_seconds=10.0)
+                               ai_max_output_tokens=1200, ai_reasoning_effort="low", ai_timeout_seconds=10.0)
     service = CommentaryService(settings, client_factory=lambda: SimpleNamespace(responses=FakeResponses()))
     assert service.explain(130, "fan")["status"] == "live"
     result = service.explain(106, "analyst")
@@ -79,6 +79,8 @@ def test_commentary_calls_are_independent_and_cannot_read_future() -> None:
     assert result["evidence"]["winner"] is None
     assert len(calls) == 2
     assert all(c["store"] is False for c in calls)
+    assert all(c["max_output_tokens"] == 1200 for c in calls)
+    assert all(c["reasoning"] == {"effort": "low"} for c in calls)
     assert all("previous_response_id" not in c and "conversation" not in c for c in calls)
     later, earlier = [json.loads(c["input"][0]["content"]) for c in calls]
     assert later["winner"] == AWAY
@@ -93,11 +95,39 @@ def test_unsupported_future_result_is_hidden() -> None:
             return SimpleNamespace(output_text="Argentina wins on penalties.")
 
     settings = SimpleNamespace(narrative_mode="live", ai_model_deployment="test",
-                               ai_max_output_tokens=450, ai_timeout_seconds=10.0)
+                               ai_max_output_tokens=1200, ai_reasoning_effort="low", ai_timeout_seconds=10.0)
     service = CommentaryService(settings, client_factory=lambda: SimpleNamespace(responses=FutureResponses()))
     result = service.explain(45, "fan")
     assert result["status"] == "unavailable"
     assert result["commentary"] == summary(45)
+
+
+@pytest.mark.parametrize(
+    ("output_text", "incomplete_reason", "expected_rejection"),
+    [
+        ("", "max_output_tokens", "output_token_limit"),
+        ("", None, "empty_model_output"),
+        ("x" * 1201, None, "oversized_model_output"),
+        ("Argentina wins on penalties.", None, "premature_match_result"),
+    ],
+)
+def test_commentary_rejections_are_diagnosable_without_leaking_text(
+    output_text: str, incomplete_reason: str | None, expected_rejection: str, caplog
+) -> None:  # type: ignore[no-untyped-def]
+    class FakeResponses:
+        def create(self, **kwargs):  # type: ignore[no-untyped-def]
+            details = SimpleNamespace(reason=incomplete_reason) if incomplete_reason else None
+            return SimpleNamespace(output_text=output_text, incomplete_details=details)
+
+    settings = SimpleNamespace(narrative_mode="live", ai_model_deployment="test",
+                               ai_max_output_tokens=1200, ai_reasoning_effort="low",
+                               ai_timeout_seconds=10.0)
+    service = CommentaryService(settings, client_factory=lambda: SimpleNamespace(responses=FakeResponses()))
+    result = service.explain(106, "fan")
+    assert result["status"] == "unavailable"
+    assert result["commentary"] == summary(106)
+    assert f"showcase commentary rejected ({expected_rejection})" in caplog.text
+    assert output_text[:50] not in caplog.text if output_text else True
 
 
 def test_disabled_ai_uses_honestly_labeled_summary() -> None:

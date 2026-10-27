@@ -102,6 +102,8 @@ try {
     # Temporarily select ACA for shared helpers; finally restores the caller's environment.
     $env:AZURE_RESOURCE_GROUP = $script:AcaGroup
     $env:ACA_ONLY_MODE = 'true'
+    # Resolve smoke and load-test targets from the isolated ACA group, never a legacy URL override.
+    Remove-Item Env:ACA_WEB_URL -ErrorAction SilentlyContinue
 
     function Invoke-BasePreview {
         Assert-GroupExists $script:AcaGroup

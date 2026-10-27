@@ -8,10 +8,11 @@ if Foundry is disabled or unreachable.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import json
 import logging
 import re
-from typing import Any, Callable
+from typing import Any
 
 from .config import Settings
 from .showcase import AWAY, HOME, evidence_at, state_at

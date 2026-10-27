@@ -40,9 +40,14 @@ deterministic event summary rather than an AI response.
   A monotonically increasing request ID discards late replies from old cursors.
 
 The visible event statistics refer to **selected fictional records**, not
-complete game totals. The app cannot infer tactical causation, mentality,
-full-match possession, full passing counts, or precise time-of-day or second
-precision from this script.
+complete game totals; every stat identifies Spain and Argentina separately.
+The clock labels 45′ as half-time and numbers each penalty kick in the current
+event. Rewinding before the shootout hides the outcome and clears previously
+rendered penalty kicks, while the evidence panel still shows a cutoff-specific
+penalty score. A scenario-specific footer explains that this fictional replay
+does not use the historical datasets from the main dashboard.
+The app cannot infer tactical causation, mentality, full-match possession,
+full passing counts, or precise time-of-day or second precision from this script.
 
 ## Design decisions for judges
 
@@ -81,7 +86,9 @@ and the no-data-history guard. These tests do not make billable Azure requests.
 ## Remaining validation before submitting
 
 - Confirm the web and internal insights images containing this branch are
-  running and `/time-machine` works end to end.
+  running and `/time-machine` works end to end. Check minute 45, minute 106,
+  penalty kick 10/10 at step 130, and rewind 130 → 45. Verify the late
+  penalty score and winner are no longer visible after rewind.
 - Enable the *already configured* Foundry deployment and verify one **live**
   Fan and Analyst response. Never label offline fallback as a live model call.
 - Record a public video shorter than two minutes and cite upstream Reactor

@@ -178,7 +178,9 @@
       const body = await response.json();
       if (body.step !== requestedStep || body.mode !== requestedMode) throw new Error("mismatched response");
       if (id !== requestNumber || cursor !== requestedStep || mode !== requestedMode) return;
-      cache.set(key, body);
+      // A temporary Foundry failure must be retriable at the same step/mode.
+      // Only successful model narration is safe to keep in the display cache.
+      if (body.status === "live") cache.set(key, body);
       display(body, false);
     } catch (_error) {
       if (id === requestNumber) {

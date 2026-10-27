@@ -75,4 +75,13 @@
   .tm-scoreline > .tm-team:first-child { grid-area:home; }
   .tm-scoreline > .tm-team:last-child { grid-area:away; }
   .tm-team { min-width:0; overflow-wrap:anywhere; }
+  /* Larger A+ font sizes leave too little room for side-by-side cards. */
+  .tm-stats { grid-template-columns:minmax(0,1fr); }
+  .tm-stat { min-width:0; overflow-wrap:anywhere; }
+  .tm-stat-team { flex-wrap:wrap; min-width:0; }
+  .tm-stat-team > span, .tm-stat-team > strong { min-width:0; overflow-wrap:anywhere; }
+  /* Fixed 7rem evidence labels otherwise exceed a 320px viewport at A+. */
+  .tm-evidence dl { grid-template-columns:minmax(0,1fr); row-gap:.15rem; }
+  .tm-evidence dt, .tm-evidence dd { min-width:0; overflow-wrap:anywhere; }
+  .tm-evidence dd { margin-bottom:.35rem; }
 }

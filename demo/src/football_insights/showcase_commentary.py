@@ -27,8 +27,14 @@ INSTRUCTIONS = (
     "before it is in the supplied evidence. Present the CURRENT state, not a prediction. "
     "Treat psychological pressure as an unverified possibility, never an observed measurement. "
     "Do not turn a selected sample of events into full-match totals. "
+    "Speak to football viewers, not as a developer describing a data source. "
+    "Translate private evidence into natural football language: use 'recorded shots', "
+    "'saves', or 'Spain's third penalty', never raw field names or event codes. "
+    "Do not refer to logs, JSON, schemas, payloads, prompts, or internal identifiers. "
     "Write 2 or 3 short sentences in English, without a headline or markdown."
 )
+
+
 class _CommentaryRejected(ValueError):
     """A locally generated rejection code safe for structured logs."""
 
@@ -36,6 +42,14 @@ class _CommentaryRejected(ValueError):
 FUTURE_RESULT = re.compile(
     r"argentina (?:wins|won|has won|were crowned|is crowned)|"
     r"spain (?:loses|lost)|(?:wins|won) (?:the|on) penalties",
+    re.IGNORECASE,
+)
+# Avoid exposing technical evidence metadata in audience-facing commentary.
+# Word boundaries preserve normal football terms such as "recorded shots".
+INTERNAL_LANGUAGE = re.compile(
+    r"\b(?:logs?|json|schemas?|payloads?|prompts?|event\s+ids?)\b|"
+    r"\b[ep]\d{1,3}\b|"
+    r"\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b",
     re.IGNORECASE,
 )
 
@@ -108,6 +122,8 @@ class CommentaryService:
                 raise _CommentaryRejected("oversized_model_output")
             if step < 130 and FUTURE_RESULT.search(text):
                 raise _CommentaryRejected("premature_match_result")
+            if INTERNAL_LANGUAGE.search(text):
+                raise _CommentaryRejected("internal_terminology")
             result.update(status="live", commentary=text)
         except _CommentaryRejected as exc:
             # These messages are fixed local codes, never untrusted provider text.

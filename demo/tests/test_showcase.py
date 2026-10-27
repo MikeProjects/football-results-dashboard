@@ -12,8 +12,8 @@ import pytest
 
 from football_insights.showcase import (
     AWAY,
-    HOME,
     EVENTS,
+    HOME,
     LAST_STEP,
     evidence_at,
     known_events,

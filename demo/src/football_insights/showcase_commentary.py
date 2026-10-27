@@ -21,7 +21,8 @@ log = logging.getLogger(__name__)
 
 INSTRUCTIONS = (
     "You are commentating on a FICTIONAL alternate-history football final. "
-    "The supplied JSON is the entire authorized evidence. Do not use your knowledge of real "
+    "The provided fictional match facts are the entire authorized evidence. "
+    "Do not use your knowledge of real "
     "World Cup results or invent additional goals, shots, decisions, outcomes, players, statistics, "
     "causes, or future events. Never speculate about later minutes or reveal the eventual winner "
     "before it is in the supplied evidence. Present the CURRENT state, not a prediction. "
@@ -44,6 +45,7 @@ FUTURE_RESULT = re.compile(
     r"spain (?:loses|lost)|(?:wins|won) (?:the|on) penalties",
     re.IGNORECASE,
 )
+
 # Avoid exposing technical evidence metadata in audience-facing commentary.
 # Word boundaries preserve normal football terms such as "recorded shots".
 INTERNAL_LANGUAGE = re.compile(

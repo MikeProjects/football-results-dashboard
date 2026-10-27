@@ -127,7 +127,8 @@ def test_commentary_rejections_are_diagnosable_without_leaking_text(
     assert result["status"] == "unavailable"
     assert result["commentary"] == summary(106)
     assert f"showcase commentary rejected ({expected_rejection})" in caplog.text
-    assert output_text[:50] not in caplog.text if output_text else True
+    if output_text:
+        assert output_text[:50] not in caplog.text
 
 
 def test_disabled_ai_uses_honestly_labeled_summary() -> None:

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Football Time Machine{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/time_machine.css">
+<section class="tm" aria-label="Football Time Machine">
+  <div class="tm-intro">
+    <div>
+      <p class="tm-kicker">HACKATHON SHOWCASE · EXPLAINABLE AI</p>
+      <h2>Football Time Machine</h2>
+      <p>What if the 2026 final went to penalties?</p>
+    </div>
+    <span class="tm-flag">FICTIONAL ALTERNATE HISTORY</span>
+  </div>
+  <p class="tm-disclosure">This is an original synthetic what-if scenario, not the real World Cup result. All counts refer only to selected fictional events.</p>
+  <div id="tm-error" class="tm-error" role="alert" hidden></div>
+
+  <section class="tm-scoreboard" aria-label="Match scoreboard">
+    <div class="tm-scoreline">
+      <div class="tm-team"><span class="tm-flag-icon" aria-hidden="true">🇪🇸</span><strong>Spain</strong></div>
+      <div class="tm-score-center">
+        <div class="tm-score" id="tm-score">0 : 0</div>
+        <div class="tm-clock" id="tm-clock">0′ · First half</div>
+      </div>
+      <div class="tm-team"><span class="tm-flag-icon" aria-hidden="true">🇦🇷</span><strong>Argentina</strong></div>
+    </div>
+    <div id="tm-penalties" class="tm-penalties" hidden>
+      <strong>Penalty shootout: <span id="tm-penalty-score">0 : 0</span></strong>
+      <div id="tm-penalty-kicks" class="tm-kicks"></div>
+    </div>
+    <div id="tm-winner" class="tm-winner" hidden></div>
+  </section>
+
+  <section class="tm-controls" aria-label="Replay controls">
+    <div class="tm-control-row">
+      <button id="tm-back" type="button" title="Previous step">◀ Step</button>
+      <button id="tm-play" type="button">▶ Play</button>
+      <button id="tm-next" type="button" title="Next step">Step ▶</button>
+      <span id="tm-progress-text" class="tm-progress">0 / 130</span>
+    </div>
+    <label for="tm-slider">Replay position: one state per minute, then one step per penalty kick</label>
+    <input id="tm-slider" type="range" min="0" max="130" step="1" value="0">
+    <div class="tm-control-hint">Jump to any minute or select a key moment. The final outcome is revealed only when playback reaches it.</div>
+  </section>
+
+  <div class="tm-grid">
+    <section class="tm-panel" aria-label="Key moments">
+      <h3>Key moments</h3>
+      <div id="tm-moments" class="tm-moments" aria-live="off"></div>
+      <h3>Current event</h3>
+      <div id="tm-current-event" class="tm-event">Kick-off</div>
+      <h3>Recorded event sample</h3>
+      <div id="tm-stats" class="tm-stats"></div>
+    </section>
+
+    <section class="tm-panel" aria-label="AI commentary">
+      <div class="tm-panel-heading">
+        <h3>AI commentary</h3>
+        <div class="tm-mode" role="group" aria-label="Commentary audience">
+          <button id="tm-fan" class="tm-mode-active" type="button" aria-pressed="true">Fan</button>
+          <button id="tm-analyst" type="button" aria-pressed="false">Analyst</button>
+        </div>
+      </div>
+      <p class="tm-note">The Foundry model sees only events available at this replay position. Each request has no prior conversation history.</p>
+      <button id="tm-explain" class="tm-primary" type="button">✦ Explain this moment</button>
+      <div id="tm-commentary" class="tm-commentary" aria-live="polite">Select a moment and request AI commentary.</div>
+      <div id="tm-commentary-source" class="tm-source">No model call yet.</div>
+      <h3>Evidence behind the moment</h3>
+      <div id="tm-evidence" class="tm-evidence">Evidence will appear here as playback begins.</div>
+      <p class="tm-note">Caution: sampled synthetic events are not official tracking data. Psychological pressure is interpretation, not a measured fact.</p>
+    </section>
+  </div>
+</section>
+<script src="/static/time_machine.js" defer></script>
+{% endblock %}
+
+{% block footer %}
+  <p><strong>Scenario provenance.</strong> This original Spain–Argentina replay is a fictional,
+  selected-event simulation, not an official match feed. Historical datasets used elsewhere
+  in the app do not supply events for this what-if final.</p>
+  <p class="dim">Replay scores and sampled statistics are derived from the fictional events.
+  On demand, Microsoft Foundry explains evidence available at the selected replay step;
+  it does not receive earlier commentary or select analytics tools on this page.
+  {% if trace_id %} Page trace ID: <code class="copy" data-copy="{{ trace_id }}" title="Copy trace ID">{{ trace_id }}</code>{% endif %}</p>
+{% endblock %}

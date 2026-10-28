@@ -1,0 +1,87 @@
+/* Synthetic replay showcase. Scoped styles preserve the original seven-card dashboard. */
+.tm { --tm-panel:#151f2b; --tm-edge:#3e4c60; --tm-blue:#74c7f5; }
+/* Keep rewound, as-yet-unknown outcomes hidden even if another rule sets display. */
+.tm [hidden] { display:none !important; }
+.tm-intro { display:flex; flex-wrap:wrap; gap:1rem; justify-content:space-between; align-items:center; }
+.tm-intro h2 { font-size:2rem; margin:0; line-height:1.1; letter-spacing:-.03em; }
+.tm-intro p { margin:.4rem 0; color:#c5d4e1; }
+.tm-kicker { font-size:.75rem; letter-spacing:.14em; color:var(--tm-blue)!important; font-weight:700; }
+.tm-flag { border:1px solid #d6b75b; color:#f2dc88; padding:.35rem .65rem; border-radius:2rem; font-size:.7rem; font-weight:750; }
+.tm-disclosure { font-size:.76rem; color:#c6cfdb; max-width:74rem; }
+.tm-error { border:1px solid #f77; color:#fee; padding:.6rem; }
+.tm-scoreboard { background:linear-gradient(130deg,#182b41,#14202e); border:1px solid var(--tm-edge); border-radius:12px; padding:1.2rem; }
+.tm-scoreline { display:grid; grid-template-columns:1fr minmax(10rem,1.1fr) 1fr; gap:.5rem; text-align:center; align-items:center; }
+.tm-team { display:flex; flex-direction:column; align-items:center; gap:.2rem; font-size:1.18rem; }
+.tm-flag-icon { font-size:1.7rem; }
+.tm-score { font-size:3rem; line-height:1.1; font-weight:800; letter-spacing:.04em; font-variant-numeric:tabular-nums; }
+.tm-clock { color:#c3d7e7; font-size:.9rem; }
+.tm-penalties { margin:1rem auto 0; text-align:center; font-size:.9rem; }
+.tm-kicks { display:flex; gap:1.5rem; justify-content:center; flex-wrap:wrap; margin-top:.6rem; }
+.tm-kick-row { display:flex; gap:.3rem; align-items:center; }
+.tm-kick-dot { display:inline-flex; width:1.3rem; height:1.3rem; border-radius:50%; justify-content:center; align-items:center; font-weight:bold; font-size:.85rem; }
+.tm-kick-dot.yes { background:#155c42; color:#eafff4; } .tm-kick-dot.no { background:#743b43; color:#fff; }
+.tm-winner { text-align:center; margin-top:1rem; color:#9ff4c0; font-weight:bold; }
+.tm-controls { margin:.9rem 0 1.2rem; padding:.85rem 1rem; border:1px solid var(--tm-edge); background:var(--tm-panel); border-radius:10px; }
+.tm-control-row { display:flex; align-items:center; flex-wrap:wrap; gap:.5rem; margin-bottom:.6rem; }
+.tm-control-row button { min-width:5rem; }
+.tm-progress { margin-left:auto; color:#d3dfec; font-size:.8rem; font-variant-numeric:tabular-nums; }
+.tm-controls label { display:block; font-size:.78rem; color:#c9d6e3; }
+.tm-controls input[type=range] { width:100%; accent-color:#56b4e9; cursor:pointer; }
+.tm-control-hint { font-size:.72rem; color:#bbcad7; }
+.tm-grid { display:grid; grid-template-columns:1fr 1.1fr; gap:1rem; }
+.tm-panel { background:var(--tm-panel); border:1px solid var(--tm-edge); border-radius:10px; padding:1rem; min-width:0; }
+.tm-panel h3 { font-size:1.07rem; margin:.1rem 0 .65rem; color:var(--tm-blue); }
+.tm-moments { display:grid; grid-template-columns:1fr 1fr; gap:.45rem; margin-bottom:1.1rem; }
+.tm-moment { text-align:left; padding:.55rem .6rem; font-size:.81rem; background:#243448; min-height:3rem; line-height:1.3; }
+.tm-moment span { display:block; color:#adbed0; font-size:.7rem; }
+.tm-moment.current { border-color:#77d5ff; background:#244c66; }
+.tm-event { background:#253449; border-left:3px solid #56b4e9; padding:.65rem; min-height:3rem; font-size:.86rem; margin-bottom:1.1rem; }
+.tm-stats { display:grid; grid-template-columns:1fr 1fr; gap:.4rem; font-size:.78rem; }
+.tm-stat { border:1px solid var(--tm-edge); padding:.6rem; border-radius:6px; }
+.tm-stat-teams { margin-top:.35rem; }
+.tm-stat-team { display:flex; align-items:baseline; justify-content:space-between; gap:.35rem; }
+.tm-stat-team strong { font-size:1.1rem; color:#e5f3ff; font-variant-numeric:tabular-nums; }
+.tm-panel-heading { display:flex; align-items:center; flex-wrap:wrap; justify-content:space-between; gap:.5rem; }
+.tm-panel-heading h3 { margin:0; }
+.tm-mode { display:flex; gap:.3rem; }
+.tm-mode button { font-size:.75rem; }
+.tm-mode-active { background:#185e85; border-color:#7acfff; }
+.tm-note { color:#bcc9d8; font-size:.73rem; }
+.tm-primary { border:1px solid #86ddff; background:#176490; font-weight:700; }
+.tm-commentary { margin:.75rem 0 .3rem; padding:1rem; background:#22364a; border-radius:8px; min-height:4.5rem; font-size:.92rem; }
+.tm-source { font-size:.74rem; color:#a9c3d6; margin-bottom:1rem; }
+.tm-evidence { padding:.75rem; background:#101a25; border:1px solid var(--tm-edge); border-radius:7px; font-size:.8rem; }
+.tm-evidence dl { display:grid; grid-template-columns:7rem 1fr; gap:.4rem; margin:0; }
+.tm-evidence dt { color:#abbaca; }
+.tm-evidence dd { margin:0; overflow-wrap:anywhere; }
+.tm button:disabled { opacity:.5; cursor:not-allowed; }
+@media(max-width:760px) {
+  .tm-grid { grid-template-columns:1fr; }
+  .tm-intro h2 { font-size:1.6rem; }
+  .tm-score { font-size:2.1rem; }
+  .tm-team { font-size:.88rem; }
+  .tm-moments { grid-template-columns:1fr; }
+}
+/* At 320px with increased text size, the fixed 10rem center column overflows.
+   Give the score a full row and allow both team labels to shrink/wrap. */
+@media(max-width:420px) {
+  .tm-scoreboard { padding:.75rem; }
+  .tm-scoreline {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-areas:"score score" "home away";
+    gap:.5rem .25rem;
+  }
+  .tm-score-center { grid-area:score; min-width:0; }
+  .tm-scoreline > .tm-team:first-child { grid-area:home; }
+  .tm-scoreline > .tm-team:last-child { grid-area:away; }
+  .tm-team { min-width:0; overflow-wrap:anywhere; }
+  /* Larger A+ font sizes leave too little room for side-by-side cards. */
+  .tm-stats { grid-template-columns:minmax(0,1fr); }
+  .tm-stat { min-width:0; overflow-wrap:anywhere; }
+  .tm-stat-team { flex-wrap:wrap; min-width:0; }
+  .tm-stat-team > span, .tm-stat-team > strong { min-width:0; overflow-wrap:anywhere; }
+  /* Fixed 7rem evidence labels otherwise exceed a 320px viewport at A+. */
+  .tm-evidence dl { grid-template-columns:minmax(0,1fr); row-gap:.15rem; }
+  .tm-evidence dt, .tm-evidence dd { min-width:0; overflow-wrap:anywhere; }
+  .tm-evidence dd { margin-bottom:.35rem; }
+}

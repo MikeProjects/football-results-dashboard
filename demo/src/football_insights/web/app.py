@@ -30,6 +30,8 @@ from ..charts import render as render_chart
 from ..config import get_settings
 from ..runtime import describe
 from ..schemas import Answer, Chart, Fact, ToolResult
+from ..showcase import LAST_STEP, evidence_at, replay_payload
+from ..showcase_commentary import summary
 from ..telemetry import collector, configure, instrument_app
 
 log = logging.getLogger("football_insights.web")
@@ -123,7 +125,7 @@ def create_app(client: httpx.AsyncClient | None = None) -> ASGIApp:
     async def headers_and_limits(request: Request, call_next):
         path = request.url.path
         if not path.startswith(("/static", "/healthz", "/readyz")):
-            is_ask = request.method == "POST" and path in ("/ask", "/api/ask")
+            is_ask = request.method == "POST" and path in ("/ask", "/api/ask", "/api/time-machine/explain")
             bucket, limit = ("ask", settings.ask_rate_limit_per_minute) if is_ask \
                 else ("page", settings.web_rate_limit_per_minute)
             if not limiter.allow(client_key(request), bucket, limit):
@@ -196,6 +198,36 @@ def create_app(client: httpx.AsyncClient | None = None) -> ASGIApp:
             error = f"The insights service is not ready yet ({type(exc).__name__})."
         return page(request, "index.html", badge=info, cards=cards, error=error, examples=EXAMPLES,
                     max_chars=settings.question_max_chars)
+
+    @app.get("/time-machine", response_class=HTMLResponse)
+    async def time_machine(request: Request) -> HTMLResponse:
+        """Separate synthetic showcase; historical cards and curated analytics stay unchanged."""
+        return page(request, "time_machine.html", badge=await badge())
+
+    @app.get("/api/time-machine")
+    def time_machine_data() -> dict[str, Any]:
+        return replay_payload()
+
+    @app.post("/api/time-machine/explain")
+    async def time_machine_explain(request: Request) -> JSONResponse:
+        try:
+            payload = await request.json()
+        except (ValueError, RecursionError):
+            return JSONResponse({"detail": "expected a JSON object"}, status_code=400)
+        if not isinstance(payload, dict):
+            return JSONResponse({"detail": "expected a JSON object"}, status_code=400)
+        step, mode = payload.get("step"), payload.get("mode")
+        if (not isinstance(step, int) or isinstance(step, bool) or not 0 <= step <= LAST_STEP
+                or mode not in ("fan", "analyst")):
+            return JSONResponse({"detail": "step must be 0..130 and mode fan or analyst"}, status_code=400)
+        # Never accept arbitrary evidence from a browser; the private service rebuilds the cutoff.
+        try:
+            response = await client.post("/v1/time-machine/explain", json={"step": step, "mode": mode})
+            response.raise_for_status()
+            return JSONResponse(response.json())
+        except (httpx.HTTPError, ValueError):
+            return JSONResponse({"step": step, "mode": mode, "status": "unavailable",
+                                 "commentary": summary(step), "evidence": evidence_at(step)})
 
     @app.get("/card/{number}", response_class=HTMLResponse)
     async def card_page(request: Request, number: int, v: int = 0) -> HTMLResponse:

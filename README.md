@@ -12,6 +12,19 @@ This repository is the companion to the Microsoft Reactor livestream **Build AI-
 6. How much, if at all, does hosting a major tournament help a country's chances in the tournament?
 7. Which teams are the most active in playing friendlies and friendly tournaments, and does it help or hurt them?
 
+## New hackathon showcase: Football Time Machine
+
+**[Football Time Machine](docs/SHOWCASE.md)** adds an original, clearly
+**fictional alternate-history** match replay alongside the seven existing
+historical football insights. It uses selected synthetic events (not an official
+2026 FIFA feed), deterministic minute/penalty state, time-bounded evidence and
+on-demand Microsoft Foundry commentary in Fan / Analyst modes.
+
+With the services running, open **[/time-machine](http://127.0.0.1:8080/time-machine)**.
+The replay runs even without Azure; the commentary panel clearly distinguishes
+live AI output from deterministic fallback. Implementation, attribution,
+limitations and tests: [docs/SHOWCASE.md](docs/SHOWCASE.md).
+
 ## Data attribution
 
 - **International football results from 1872 to 2026** by Mart Jürisoo, on [Kaggle](https://www.kaggle.com/datasets/martj42/international-football-results-from-1872-to-2017), CC0: Public Domain.

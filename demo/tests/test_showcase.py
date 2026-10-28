@@ -21,7 +21,7 @@ from football_insights.showcase import (
     state_at,
     step_of,
 )
-from football_insights.showcase_commentary import CommentaryService, INTERNAL_LANGUAGE, model_briefing, summary
+from football_insights.showcase_commentary import INTERNAL_LANGUAGE, CommentaryService, model_briefing, summary
 
 
 def test_scenario_ids_and_order_are_deterministic() -> None:

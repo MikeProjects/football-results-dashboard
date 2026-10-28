@@ -82,9 +82,15 @@ def model_briefing(evidence: dict[str, Any]) -> str:
     if evidence["winner"]:
         lines.append(f"Confirmed winner: {evidence['winner']}.")
     lines.append("Selected incidents known by this replay time, in chronological order:")
+    penalty_number = 0
     for incident in evidence["events"]:
+        if incident["kind"] == "penalty":
+            penalty_number += 1
+            when = f"Penalty kick {penalty_number}/10"
+        else:
+            when = incident["clock"]
         team = f"{incident['team']}: " if incident["team"] else ""
-        lines.append(f"- {incident['clock']} — {team}{incident['detail']}")
+        lines.append(f"- {when} — {team}{incident['detail']}")
     lines.append("Do not infer unrecorded incidents, predict later results, or present "
                  "psychological pressure or tactical causation as measured facts.")
     return "\n".join(lines)

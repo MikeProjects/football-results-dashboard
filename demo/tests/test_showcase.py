@@ -21,7 +21,7 @@ from football_insights.showcase import (
     state_at,
     step_of,
 )
-from football_insights.showcase_commentary import CommentaryService, summary
+from football_insights.showcase_commentary import CommentaryService, INTERNAL_LANGUAGE, model_briefing, summary
 
 
 def test_scenario_ids_and_order_are_deterministic() -> None:
@@ -82,11 +82,35 @@ def test_commentary_calls_are_independent_and_cannot_read_future() -> None:
     assert all(c["max_output_tokens"] == 1200 for c in calls)
     assert all(c["reasoning"] == {"effort": "low"} for c in calls)
     assert all("previous_response_id" not in c and "conversation" not in c for c in calls)
-    later, earlier = [json.loads(c["input"][0]["content"]) for c in calls]
-    assert later["winner"] == AWAY
-    assert earlier["winner"] is None
-    assert "P10" not in {e["id"] for e in earlier["events"]}
-    assert "P10" in {e["id"] for e in later["events"]}
+    later, earlier = [c["input"][0]["content"] for c in calls]
+    assert "Confirmed winner: Argentina." in later
+    assert "Confirmed winner:" not in earlier
+    assert "Argentina wins the shootout" not in earlier
+    assert "106′" in earlier
+    assert "Penalty shootout so far: Spain 3–4 Argentina." in later
+    # The LLM is given natural football commentary facts, not backend metadata.
+    assert "P10" not in later and "E017" not in earlier
+    assert "cutoff_step" not in earlier and "scenario_id" not in later
+
+
+@pytest.mark.parametrize("step", [0, 45, 106, 120, 129, 130])
+def test_model_briefing_avoids_internal_language_and_future_events(step: int) -> None:
+    briefing = model_briefing(evidence_at(step))
+    assert not INTERNAL_LANGUAGE.search(briefing)
+    assert "E017" not in briefing and "P10" not in briefing
+    assert "scenario_id" not in briefing and "cutoff_step" not in briefing
+    assert "Match score: Spain 0–0 Argentina." in briefing
+    assert "Only selected fictional incidents" in briefing
+    if step < 130:
+        assert "Confirmed winner:" not in briefing
+        assert "Argentina converts the decisive kick" not in briefing
+    else:
+        assert "Confirmed winner: Argentina." in briefing
+        assert "Argentina converts the decisive kick" in briefing
+    if step <= 120:
+        assert "Penalty shootout so far:" not in briefing
+    else:
+        assert "Penalty shootout so far:" in briefing
 
 
 def test_unsupported_future_result_is_hidden() -> None:

@@ -8,7 +8,6 @@ if Foundry is disabled or unreachable.
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 from collections.abc import Callable
@@ -21,7 +20,8 @@ log = logging.getLogger(__name__)
 
 INSTRUCTIONS = (
     "You are commentating on a FICTIONAL alternate-history football final. "
-    "The provided fictional match facts are the entire authorized evidence. "
+    "The provided plain-English match briefing is the entire authorized evidence. "
+    "It contains only selected incidents known by the current replay time. "
     "Do not use your knowledge of real "
     "World Cup results or invent additional goals, shots, decisions, outcomes, players, statistics, "
     "causes, or future events. Never speculate about later minutes or reveal the eventual winner "
@@ -31,7 +31,8 @@ INSTRUCTIONS = (
     "Speak to football viewers, not as a developer describing a data source. "
     "Translate private evidence into natural football language: use 'recorded shots', "
     "'saves', or 'Spain's third penalty', never raw field names or event codes. "
-    "Do not refer to logs, JSON, schemas, payloads, prompts, or internal identifiers. "
+    "Do not refer to logs, JSON, schemas, payloads, prompts, raw data fields, "
+    "event codes or internal identifiers, even if they appear in source material. "
     "Write 2 or 3 short sentences in English, without a headline or markdown."
 )
 
@@ -54,6 +55,39 @@ INTERNAL_LANGUAGE = re.compile(
     r"\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b",
     re.IGNORECASE,
 )
+
+
+def model_briefing(evidence: dict[str, Any]) -> str:
+    """Give Foundry natural football facts, not technical keys or event identifiers.
+
+    The evidence is already cutoff-bounded by evidence_at(step). Preserve its
+    selected-event limitation and omit any winner before the final step.
+    """
+    score = evidence["match_score"]
+    shots = evidence["recorded_shots"]
+    saves = evidence["recorded_saves"]
+    disallowed = evidence["disallowed_goals"]
+    lines = [
+        "Fictional alternate-history football final: Spain versus Argentina.",
+        "Only selected fictional incidents are recorded, not a complete match account.",
+        f"Current replay time: {evidence['clock']}.",
+        f"Match score: Spain {score[HOME]}–{score[AWAY]} Argentina.",
+        f"Recorded shots in this sample: Spain {shots[HOME]}, Argentina {shots[AWAY]}.",
+        f"Recorded goalkeeper saves in this sample: Spain {saves[HOME]}, Argentina {saves[AWAY]}.",
+        f"Disallowed goals in this sample: Spain {disallowed[HOME]}, Argentina {disallowed[AWAY]}.",
+    ]
+    if evidence["cutoff_step"] > 120:
+        penalties = evidence["penalty_score"]
+        lines.append(f"Penalty shootout so far: Spain {penalties[HOME]}–{penalties[AWAY]} Argentina.")
+    if evidence["winner"]:
+        lines.append(f"Confirmed winner: {evidence['winner']}.")
+    lines.append("Selected incidents known by this replay time, in chronological order:")
+    for incident in evidence["events"]:
+        team = f"{incident['team']}: " if incident["team"] else ""
+        lines.append(f"- {incident['clock']} — {team}{incident['detail']}")
+    lines.append("Do not infer unrecorded incidents, predict later results, or present "
+                 "psychological pressure or tactical causation as measured facts.")
+    return "\n".join(lines)
 
 
 def summary(step: int) -> str:
@@ -101,7 +135,8 @@ class CommentaryService:
 
         style = ("Use clear, lively language for a casual football fan."
                  if mode == "fan" else
-                 "Be concise and analytical. Explicitly distinguish evidence from interpretations.")
+                 "Be concise and analytical in natural football language. Distinguish "
+                 "recorded incidents from uncertain interpretations without using technical jargon.")
         try:
             if self.client_factory is not None:
                 client = self.client_factory()
@@ -114,7 +149,7 @@ class CommentaryService:
             response = client.responses.create(
                 model=self.settings.ai_model_deployment,
                 instructions=INSTRUCTIONS + " " + style,
-                input=[{"role": "user", "content": json.dumps(evidence, ensure_ascii=False)}],
+                input=[{"role": "user", "content": model_briefing(evidence)}],
                 store=False,
                 # The model may spend output tokens on internal reasoning. Align the
                 # budget and reasoning effort with the existing, working agent path.
@@ -143,8 +178,8 @@ class CommentaryService:
             result.update(status="live", commentary=text)
         except _CommentaryRejected as exc:
             # These messages are fixed local codes, never untrusted provider text.
-            log.warning("showcase commentary rejected (%s)", str(exc))
+            log.warning("showcase commentary rejected (%s) mode=%s", str(exc), mode)
         except Exception as exc:
             # Provider exception text can include request details. Never expose it to visitors.
-            log.warning("showcase commentary unavailable (%s)", type(exc).__name__)
+            log.warning("showcase commentary unavailable (%s) mode=%s", type(exc).__name__, mode)
         return result

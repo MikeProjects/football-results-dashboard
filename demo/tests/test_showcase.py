@@ -100,7 +100,9 @@ def test_model_briefing_avoids_internal_language_and_future_events(step: int) ->
     assert "E017" not in briefing and "P10" not in briefing
     assert "scenario_id" not in briefing and "cutoff_step" not in briefing
     assert "Match score: Spain 0–0 Argentina." in briefing
-    assert "Only selected fictional incidents" in briefing
+    assert "Only selected incidents are documented" in briefing
+    assert "fictional" not in briefing.lower()
+    assert "simulation" not in briefing.lower()
     if step < 130:
         assert "Confirmed winner:" not in briefing
         assert "Argentina converts the decisive kick" not in briefing
@@ -227,7 +229,14 @@ def test_natural_football_language_passes_validation_in_both_modes() -> None:
         assert result["status"] == "live"
         assert result["commentary"] == text
     assert all("Speak to football viewers" in call["instructions"] for call in calls)
+    assert all("FICTIONAL alternate-history" in call["instructions"] for call in calls)
+    assert all("The application already discloses that to viewers" in call["instructions"] for call in calls)
+    assert all("Do not mention that the match is fictional" in call["instructions"] for call in calls)
+    assert all("Ignore any real-world World Cup results" in call["instructions"] for call in calls)
+    assert "FAN STYLE:" in calls[0]["instructions"]
+    assert "ANALYST STYLE:" in calls[1]["instructions"]
     assert calls[0]["instructions"] != calls[1]["instructions"]
+    assert all("fictional" not in call["input"][0]["content"].lower() for call in calls)
     assert "event log" not in " ".join(evidence_at(45)["limitations"]).lower()
 
 

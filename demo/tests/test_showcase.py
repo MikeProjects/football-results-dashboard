@@ -109,8 +109,14 @@ def test_model_briefing_avoids_internal_language_and_future_events(step: int) ->
         assert "Argentina converts the decisive kick" in briefing
     if step <= 120:
         assert "Penalty shootout so far:" not in briefing
+        assert "Penalty kick 1/10 —" not in briefing
     else:
         assert "Penalty shootout so far:" in briefing
+        assert "Penalty kick 1/10 — Spain:" in briefing
+    if step == 130:
+        assert "Penalty kick 10/10 — Argentina:" in briefing
+    else:
+        assert "Penalty kick 10/10 —" not in briefing
 
 
 def test_unsupported_future_result_is_hidden() -> None:

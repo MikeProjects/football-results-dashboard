@@ -80,6 +80,27 @@ try {
     }
     Set-DefaultEnv 'AZURE_LOCATION' 'westus3'
     Set-DefaultEnv 'PROJECT_TAG' 'football-insights'
+    # Hackathon judging continues through November 10, 2026 (Pacific).
+    # Retain the ACA-only environment until at least November 12 for verification.
+    # This is a resource tag only; it does not schedule automatic teardown.
+    # The old local .env can still say 2026-10-27, so a default alone is unsafe.
+    $minimumTeardownDate = [datetime]::ParseExact('2026-11-12', 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
+    $configuredTeardownDate = [Environment]::GetEnvironmentVariable('TEARDOWN_DATE')
+    if ([string]::IsNullOrWhiteSpace($configuredTeardownDate)) {
+        $env:TEARDOWN_DATE = '2026-11-12'
+    } else {
+        $parsedTeardownDate = [datetime]::MinValue
+        if (-not [datetime]::TryParseExact($configuredTeardownDate, 'yyyy-MM-dd',
+                [Globalization.CultureInfo]::InvariantCulture,
+                [Globalization.DateTimeStyles]::None, [ref]$parsedTeardownDate)) {
+            throw 'TEARDOWN_DATE must use YYYY-MM-DD format.'
+        }
+        if ($parsedTeardownDate -lt $minimumTeardownDate) {
+            Write-Warning "ACA-only TEARDOWN_DATE=$configuredTeardownDate is before 2026-11-12. Using 2026-11-12 for this run; update your ignored .env."
+            $env:TEARDOWN_DATE = '2026-11-12'
+        }
+    }
+    Write-Host "ACA-only planned teardown-date tag: $env:TEARDOWN_DATE (manual cleanup only)"
     if (-not $env:AZURE_SUBSCRIPTION_ID) {
         $env:AZURE_SUBSCRIPTION_ID = (az account show --query id -o tsv)
     }

@@ -28,9 +28,9 @@ The existing `demo/infra/aca.bicep` remains the application template.
 Use PowerShell 7 in the repository root. Avoid resetting or discarding local edits when updating.
 
 ```powershell
-git switch work/initial
+git switch main
 git status --short
-git pull --ff-only origin work/initial
+git pull --ff-only origin main
 ```
 
 The existing `.env` may already provide these settings. Confirm or add them **locally**;
@@ -47,16 +47,24 @@ AI_MODEL_DEPLOYMENT=gpt-5-mini-1
 AI_ALLOWED_DEPLOYMENTS=gpt-5-mini-1
 AZURE_LOCATION=westus3
 ACA_RESOURCE_GROUP=rg-football-aca-test
-EVENT_DATE=YYYY-MM-DD
-TEARDOWN_DATE=YYYY-MM-DD
+EVENT_DATE=2026-10-25
+TEARDOWN_DATE=2026-11-12
 ```
 
-Replace both `YYYY-MM-DD` placeholders with actual dates before deploying the
-billable foundation: `EVENT_DATE` is the event date, and `TEARDOWN_DATE` is the
-planned resource cleanup date. Both are required by `aca.bicepparam` without
-defaults, so leaving them empty makes `plan-aca` fail during parameter compilation.
-These values are resource tags only; `TEARDOWN_DATE` does **not** schedule or
-automatically perform resource removal. Follow the manual cleanup steps in section 7.
+For the 2026 hackathon, `EVENT_DATE=2026-10-25` records the original test/event
+date, and `TEARDOWN_DATE=2026-11-12` represents **planned manual cleanup
+after the November 10 judging period**, with a one-day buffer. These values
+are resource tags only; they do **not** schedule or automatically perform
+resource removal. Follow the manual cleanup steps in section 7.
+
+The tracked `.env.example` shows this non-secret date, but it does **not**
+update your existing ignored local `.env`. Update `TEARDOWN_DATE` in `.env`
+on your own machine for consistency. As a safety measure, the ACA-only script
+temporarily uses **November 12 or a later configured date**, even if an
+old shell variable or local `.env` still contains `2026-10-27`; it warns
+when it overrides an earlier date. The script restores your shell environment
+on exit and does not rewrite `.env`. The original two-platform workflow is
+not affected by this ACA-only safety rule.
 
 The script's ACA-only default group is `rg-football-aca-test`. It derives unused
 registry/storage names from the subscription ID; override `ACR_NAME` and
